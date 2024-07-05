@@ -4,6 +4,9 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
 #include "logging.hpp"
 
 
@@ -29,7 +32,11 @@ namespace mc2d {
                         QUITTED         // Game has been quitted
                 };
 
+
+                static void     onWindowResize(GLFWwindow* wnd, int width, int height);
+
                 GameState       m_gameState;
+                GLFWwindow*     m_window;
         };
 
 }
