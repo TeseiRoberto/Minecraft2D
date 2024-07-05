@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include "logging.hpp"
+#include "graphics/renderer.hpp"
 
 
 namespace mc2d {
@@ -37,6 +38,7 @@ namespace mc2d {
 
                 GameState       m_gameState;
                 GLFWwindow*     m_window;
+                Renderer        m_renderer;
         };
 
 }

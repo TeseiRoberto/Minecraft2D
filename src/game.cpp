@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(nullptr)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL)
         {}
 
 
@@ -25,10 +25,13 @@ namespace mc2d {
                         return;
                 }
 
+                m_gameState = GameState::INITIALIZED;
+
                 // Initialize glfw
                 if(!glfwInit())
                 {
                         logError("Game::init() failed, glfw initialization failed!");
+                        m_gameState = GameState::UNINITIALIZED;
                         return;
                 }
 
@@ -39,27 +42,34 @@ namespace mc2d {
                 if(m_window == NULL)
                 {
                         logError("Game::init() failed, glfwCreateWindow failed!");
-                        glfwTerminate();
+                        terminate();
                         return;
                 }
 
+                // Associate the newly created window and this game instance (this is used in callback functions to retrieve the game instance)
+                glfwSetWindowUserPointer(m_window, (void*) this);
+
                 // Set callbacks to handle window events
                 glfwSetFramebufferSizeCallback(m_window, this->onWindowResize);
-                
                 glfwMakeContextCurrent(m_window);
 
                 // Initialize opengl using glad
                 if(!gladLoadGL())
                 {
                         logError("Game::init() failed, glfwCreateWindow failed!");
-                        glfwDestroyWindow(m_window);
-                        m_window = nullptr;
-                        glfwTerminate();
+                        terminate();
                         return;
                 }
 
+                // Intialize renderer
+                if(m_renderer.init() != 0)
+                {
+                        terminate();
+                        return;
+                }
+
+
                 // TODO: Initialize other stuff..
-                m_gameState = GameState::INITIALIZED;
         }
 
 
@@ -68,16 +78,18 @@ namespace mc2d {
         void Game::terminate()
         {
                 if(m_gameState == GameState::UNINITIALIZED)
-                {
-                        logWarn("Game::terminate() failed, game has already been terminated!");
                         return;
-                }
 
-                // TODO: Terminate other stuff..
-      
-                glfwDestroyWindow(m_window);
-                m_window = nullptr;
-                glfwTerminate();
+                // TODO: Terminate other stuff...
+     
+                m_renderer.terminate();
+
+                if(m_window != NULL)                            // If window creation was successfull then glfw was initialized correctly
+                {
+                        glfwDestroyWindow(m_window);
+                        m_window = NULL;
+                        glfwTerminate();
+                }
 
                 m_gameState = GameState::UNINITIALIZED;                
         }
@@ -96,6 +108,8 @@ namespace mc2d {
                 {
                         // TODO: Implement main game loop
                 
+                        m_renderer.render();
+
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
                 }
@@ -106,10 +120,12 @@ namespace mc2d {
 
         // Callback invoked when the game window gets resized
         // @wnd: the window that has been resized
-        // @width: the new window width
-        // @height: the new window height
-        void Game::onWindowResize(GLFWwindow* wnd, int width, int height)
+        // @newWidth: the new window width
+        // @newHeight: the new window height
+        void Game::onWindowResize(GLFWwindow* wnd, int newWidth, int newHeight)
         {
-                logInfo("Window resized to (%d, %d)", width, height);
+                Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
+
+                game->m_renderer.resizeViewport(newWidth, newHeight);
         }
 }

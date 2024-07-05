@@ -8,6 +8,8 @@ set (SRCS
         #libs/stbImage/stb_image.cpp
         src/main.cpp
         src/game.cpp
+        src/graphics/shader.cpp
+        src/graphics/renderer.cpp
 )
 
 add_executable(minecraft2D ${SRCS})
