@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Renderer::Renderer() : m_isInit(false), m_vao(0), m_vbo(0), m_ibo(0)
+        Renderer::Renderer() : m_isInit(false), m_worldVao(0), m_worldVbo(0)
         {}
 
 
@@ -25,47 +25,34 @@ namespace mc2d {
                         return 1;
                 }
 
-                // TODO: for now we are hardcoding vao, vbo, ibo and shader creation just for debug purpouses
-        
-                // Initialize shader
-                if(m_mainShader.init("../resources/vrtxShader.vert", "../resources/fragShader.frag") != 0)
+                // Set clear color
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+                // Initialize shader, vao and vbo needed to render the blocks in the game world
+                if(m_worldShader.init("../resources/worldVrtxShader.vert", "../resources/worldFragShader.frag") != 0)
                 {
-                        logError("Renderer::init() failed, main shader creation failed!");
+                        logError("Renderer::init() failed, world shader creation failed!");
                         return 1;
                 }
 
-                float quadVertices[] = {
-                        -0.5f, -0.5f, 0.0f,
-                        0.5f, -0.5f, 0.0f,
-                        0.5f, 0.5f, 0.0f,
-                        -0.5f, 0.5f, 0.0f,
-                };
+                // Generate world vao and vbo
+                glGenVertexArrays(1, &m_worldVao);
+                glGenBuffers(1, &m_worldVbo);
 
-                uint32_t quadIndexes[] = {
-                        0, 1, 3,
-                        1, 2, 3
-                };
+                // Bind world vao and vbo
+                glBindVertexArray(m_worldVao);
+                glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
 
-                // Set clear color
-                glClearColor(0.6f, 0.4f, 0.4f, 1.0f);
+                // Allocate space for world vbo
+                glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 12, NULL, GL_DYNAMIC_DRAW);
 
-                // Generate vao, vbo and ibo
-                glGenVertexArrays(1, &m_vao);
-                glGenBuffers(1, &m_vbo);
-                glGenBuffers(1, &m_ibo);
-
-                // Bind vao, vbo and ibo
-                glBindVertexArray(m_vao);
-                glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ibo);
-
-                // Insert data into vbo and ibo
-                glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndexes), quadIndexes, GL_STATIC_DRAW);
-
-                // Define format of data in vbo (so the vertex shader knows how to use such data)
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
+                // Define format of data in world vbo (so the vertex shader knows how to use such data)
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*) 0);
                 glEnableVertexAttribArray(0);
+
+                // Allocate space to hold the vertices of the blocks that makes the game world
+                m_worldVerticesNum = 0;
+                m_worldVertices = new float[Chunk::width * Chunk::height * 12];
 
                 m_isInit = true;
                 return 0;
@@ -78,10 +65,12 @@ namespace mc2d {
                 if(!m_isInit)
                         return;
 
-                m_mainShader.terminate();
-                glDeleteVertexArrays(1, &m_vao);
-                glDeleteBuffers(1, &m_vbo);
-                glDeleteBuffers(1, &m_ibo);
+                m_worldVerticesNum = 0;
+                delete[] m_worldVertices;
+
+                m_worldShader.terminate();
+                glDeleteVertexArrays(1, &m_worldVao);
+                glDeleteBuffers(1, &m_worldVbo);
 
                 m_isInit = false;
         }
@@ -99,7 +88,8 @@ namespace mc2d {
         }
 
 
-        void Renderer::render()
+        // Renders all the blocks in the given game world that are visible from the given camera
+        void Renderer::renderWorld(Chunk& chunk, Camera& camera)
         {
                 if(!m_isInit)
                 {
@@ -107,11 +97,71 @@ namespace mc2d {
                         return;
                 }
 
-                // TODO: for now we simply draw a rectangle
+                m_worldShader.activate();                       // Activate shader to render the world
+                glBindVertexArray(m_worldVao);                  // Bind world vao
+
+                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
+                // that are visible and we need to update data in the world vbo
+                if(chunk.hasChanged)
+                {
+                        computeWorldVertices(chunk, camera);
+                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
+                        chunk.hasChanged = false;
+                }
 
                 glClear(GL_COLOR_BUFFER_BIT);
-                m_mainShader.activate();
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
         }
+
+
+        // Computes vertices (in NDC coordinate) for all the blocks in the given chunk,
+        // for now all chunk's blocks will be rendered on screen (the camera is not being used)
+        void Renderer::computeWorldVertices(const Chunk& chunk, const Camera& camera)
+        {
+                m_worldVerticesNum = 0;
+
+                // Determine block size
+                const float blockWidth = 2.0f / (float) Chunk::width;
+                const float blockHeight = 2.0f / (float) Chunk::height;
+
+                for(uint32_t y = 0; y < Chunk::height; y++)
+                {
+                        for(uint32_t x = 0; x < Chunk::width; x++)
+                        {
+                                // If the current block is solid then we need to compute vertices to render it
+                                if(chunk.blocks[ (y * Chunk::width) + x ] == 1)
+                                {
+                                        // Compute top left vertex coordinates of the block
+                                        float xPos = -1.0f + ((float)x * blockWidth);
+                                        float yPos = 1.0f - (float) (y * blockWidth);
+
+                                        // First triangle
+                                        m_worldVertices[m_worldVerticesNum + 0] = xPos;
+                                        m_worldVertices[m_worldVerticesNum + 1] = yPos - blockHeight;
+
+                                        m_worldVertices[m_worldVerticesNum + 2] = xPos + blockWidth;
+                                        m_worldVertices[m_worldVerticesNum + 3] = yPos - blockHeight;
+
+                                        m_worldVertices[m_worldVerticesNum + 4] = xPos;
+                                        m_worldVertices[m_worldVerticesNum + 5] = yPos;
+
+                                        // Second triangle
+                                        m_worldVertices[m_worldVerticesNum + 6] = xPos + blockWidth;
+                                        m_worldVertices[m_worldVerticesNum + 7] = yPos - blockHeight;
+
+                                        m_worldVertices[m_worldVerticesNum + 8] = xPos + blockWidth;
+                                        m_worldVertices[m_worldVerticesNum + 9] = yPos;
+
+                                        m_worldVertices[m_worldVerticesNum + 10] = xPos;
+                                        m_worldVertices[m_worldVerticesNum + 11] = yPos;
+                                
+                                        m_worldVerticesNum += 12;
+                                }
+                        }
+                }
+
+                logInfo("Computed %u world vertices, %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
+        }
+      
 }
 

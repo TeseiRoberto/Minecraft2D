@@ -1,5 +1,6 @@
 
 #include "game.hpp"
+#include <cstdint>
 
 int main()
 {

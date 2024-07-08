@@ -51,6 +51,8 @@ namespace mc2d {
 
                 // Set callbacks to handle window events
                 glfwSetFramebufferSizeCallback(m_window, this->onWindowResize);
+                glfwSetKeyCallback(m_window, this->onKeyEvent);
+
                 glfwMakeContextCurrent(m_window);
 
                 // Initialize opengl using glad
@@ -104,11 +106,11 @@ namespace mc2d {
                         return;
                 }
 
+                m_currChunk.generate();
+
                 while(!glfwWindowShouldClose(m_window))
                 {
-                        // TODO: Implement main game loop
-                
-                        m_renderer.render();
+                        m_renderer.renderWorld(m_currChunk, m_camera);
 
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
@@ -127,5 +129,21 @@ namespace mc2d {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
 
                 game->m_renderer.resizeViewport(newWidth, newHeight);
+        }
+
+
+        // Callback invoked when the game window receives a keyboard event
+        // @wnd: the window that has been resized
+        // @key: which key the event is related to
+        // @scancode: the scancode of the key
+        // @action: the event type (press, release, ...)
+        // @mods: the state of modifier keys
+        void Game::onKeyEvent(GLFWwindow* wnd, int key, int scancode, int action, int mods)
+        {
+                Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
+
+                // Debug code to regenerate chunk when G is pressed
+                if(key == GLFW_KEY_G && action == GLFW_PRESS)
+                        game->m_currChunk.generate();
         }
 }

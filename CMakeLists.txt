@@ -10,6 +10,8 @@ set (SRCS
         src/game.cpp
         src/graphics/shader.cpp
         src/graphics/renderer.cpp
+
+        src/chunk.cpp
 )
 
 add_executable(minecraft2D ${SRCS})

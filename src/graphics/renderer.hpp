@@ -8,7 +8,9 @@
 #include <glad/glad.h>
 
 #include "logging.hpp"
+#include "chunk.hpp"
 #include "shader.hpp"
+#include "camera.hpp"
 
 namespace mc2d {
 
@@ -23,15 +25,21 @@ namespace mc2d {
                 void    terminate();
                 void    resizeViewport(int newWidth, int newHeight);
 
-                void    render();
+                void    renderWorld(Chunk& chunk, Camera& camera);
 
         private:
 
+                void            computeWorldVertices(const Chunk& chunk, const Camera& camera);
+
                 bool            m_isInit;
-                uint32_t        m_vao;
-                uint32_t        m_vbo;
-                uint32_t        m_ibo;
-                Shader          m_mainShader;
+
+                // Data needed to render the blocks in the game world
+                uint32_t        m_worldVerticesNum;
+                float*          m_worldVertices;
+                
+                uint32_t        m_worldVao;
+                uint32_t        m_worldVbo;
+                Shader          m_worldShader;
         };
 }
 

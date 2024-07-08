@@ -8,8 +8,9 @@
 #include <GLFW/glfw3.h>
 
 #include "logging.hpp"
+#include "chunk.hpp"
 #include "graphics/renderer.hpp"
-
+#include "graphics/camera.hpp"
 
 namespace mc2d {
 
@@ -35,10 +36,14 @@ namespace mc2d {
 
 
                 static void     onWindowResize(GLFWwindow* wnd, int width, int height);
+                static void     onKeyEvent(GLFWwindow* wnd, int key, int scancode, int action, int mods);
 
                 GameState       m_gameState;
                 GLFWwindow*     m_window;
                 Renderer        m_renderer;
+
+                Camera          m_camera;
+                Chunk           m_currChunk; // Temporary just for debug purpouses
         };
 
 }
