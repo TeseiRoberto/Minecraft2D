@@ -28,10 +28,18 @@ namespace mc2d {
                 // Set clear color
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+                // Load the tileset that contains all the game's sprites
+                if(!m_gameTileset.load("../resources/blockTileset.png", 16, 14, 16, 16))
+                {
+                        logError("Renderer::init() failed, game tileset creation failed!");
+                        return 1;
+                }
+
                 // Initialize shader, vao and vbo needed to render the blocks in the game world
                 if(m_worldShader.init("../resources/worldVrtxShader.vert", "../resources/worldFragShader.frag") != 0)
                 {
                         logError("Renderer::init() failed, world shader creation failed!");
+                        m_gameTileset.unload();
                         return 1;
                 }
 
@@ -50,10 +58,9 @@ namespace mc2d {
                 glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*) 0);
                 glEnableVertexAttribArray(0);
 
-                // Allocate space to hold the vertices of the blocks that makes the game world
                 m_worldVerticesNum = 0;
-                m_worldVertices = new float[Chunk::width * Chunk::height * 12];
-
+                m_worldVertices = new float[ Chunk::width * Chunk::height * 12 ];
+                
                 m_isInit = true;
                 return 0;
         }
@@ -65,10 +72,15 @@ namespace mc2d {
                 if(!m_isInit)
                         return;
 
+                m_gameTileset.deactivate();
+                m_gameTileset.unload();
+
                 m_worldVerticesNum = 0;
                 delete[] m_worldVertices;
 
+                m_worldShader.deactivate();
                 m_worldShader.terminate();
+
                 glDeleteVertexArrays(1, &m_worldVao);
                 glDeleteBuffers(1, &m_worldVbo);
 
@@ -99,6 +111,7 @@ namespace mc2d {
 
                 m_worldShader.activate();                       // Activate shader to render the world
                 glBindVertexArray(m_worldVao);                  // Bind world vao
+                //m_gameTileset.activate();
 
                 // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
                 // that are visible and we need to update data in the world vbo

@@ -10,6 +10,7 @@
 #include "logging.hpp"
 #include "chunk.hpp"
 #include "shader.hpp"
+#include "tileset.hpp"
 #include "camera.hpp"
 
 namespace mc2d {
@@ -20,6 +21,12 @@ namespace mc2d {
         public:
                 Renderer();
                 ~Renderer();
+
+                // Delete copy constructors
+                Renderer(Renderer& other) = delete;
+                Renderer(const Renderer& other) = delete;
+                Renderer operator = (Renderer& other) = delete;
+                Renderer operator = (const Renderer& other) = delete;
 
                 int     init();
                 void    terminate();
@@ -32,6 +39,7 @@ namespace mc2d {
                 void            computeWorldVertices(const Chunk& chunk, const Camera& camera);
 
                 bool            m_isInit;
+                Tileset         m_gameTileset;
 
                 // Data needed to render the blocks in the game world
                 uint32_t        m_worldVerticesNum;

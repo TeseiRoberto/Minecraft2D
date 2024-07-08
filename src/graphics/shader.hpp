@@ -19,6 +19,12 @@ namespace mc2d {
                 Shader();
                 ~Shader();
 
+                // Delete copy constructors
+                Shader(Shader& other) = delete;
+                Shader(const Shader& other) = delete;
+                Shader operator = (Shader& other) = delete;
+                Shader operator = (const Shader& other) = delete;
+
                 int             init(const std::string& vrtxShaderFilename, const std::string& fragShaderFilename);
                 void            terminate();
 
