@@ -17,7 +17,8 @@ namespace mc2d {
 
 
         // Attempts to initialize all the resources needed by the game
-        void Game::init()
+        // @settings: struct that defines the game settings
+        void Game::init(const GameSettings& settings)
         {
                 if(m_gameState != GameState::UNINITIALIZED)
                 {
@@ -26,6 +27,7 @@ namespace mc2d {
                 }
 
                 m_gameState = GameState::INITIALIZED;
+                m_settings = settings;
 
                 // Initialize glfw
                 if(!glfwInit())
@@ -38,7 +40,7 @@ namespace mc2d {
                 // Set window properties and create the game window
                 glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
                 glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-                m_window = glfwCreateWindow(720, 480, "Minecraft2D", NULL, NULL);
+                m_window = glfwCreateWindow(settings.windowWidth, settings.windowHeight, "Minecraft-2D", NULL, NULL);
                 if(m_window == NULL)
                 {
                         logError("Game::init() failed, glfwCreateWindow failed!");
@@ -52,6 +54,7 @@ namespace mc2d {
                 // Set callbacks to handle window events
                 glfwSetFramebufferSizeCallback(m_window, this->onWindowResize);
                 glfwSetKeyCallback(m_window, this->onKeyEvent);
+                glfwSetMouseButtonCallback(m_window, this->onMouseButtonEvent);
 
                 glfwMakeContextCurrent(m_window);
 
@@ -128,6 +131,13 @@ namespace mc2d {
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
 
+                // Update window size in game settings
+                int width, height;
+                glfwGetWindowSize(wnd, &width, &height);
+                game->m_settings.windowWidth = (uint32_t) width;
+                game->m_settings.windowHeight = (uint32_t) height;
+
+                // Update render viewport
                 game->m_renderer.resizeViewport(newWidth, newHeight);
         }
 
@@ -146,4 +156,50 @@ namespace mc2d {
                 if(key == GLFW_KEY_G && action == GLFW_PRESS)
                         game->m_currChunk.generate();
         }
+
+
+        // Callback invoked when the game window receives a mouse button event
+        // @wnd: the window that received the mouse button event
+        // @button: the mouse button on which the event has hapened
+        // @action: specify the state of the button (pressed, released, hold)
+        // @modifiers: state of modifiers keys (alt, shift, ...)
+        void Game::onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int modifiers)
+        {
+                Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
+
+                // On left mouse click remove a block from the current chunk
+                if(btn == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+                {
+                        double mouseX, mouseY;
+                        glfwGetCursorPos(wnd, &mouseX, &mouseY);
+
+                        double blockWidth = (double) game->m_settings.windowWidth / (double) Chunk::width;
+                        double blockHeight = (double) game->m_settings.windowHeight / (double) Chunk::height;
+
+                        uint32_t blockX = (uint32_t) (mouseX / blockWidth);
+                        uint32_t blockY = (uint32_t) (mouseY / blockHeight);
+
+                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = 0;
+                        game->m_currChunk.hasChanged = true;
+                }
+
+                // On right mouse click add a block in the current chunk
+                if(btn == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+                {
+                        double mouseX, mouseY;
+                        glfwGetCursorPos(wnd, &mouseX, &mouseY);
+
+                        double blockWidth = (double) game->m_settings.windowWidth / (double) Chunk::width;
+                        double blockHeight = (double) game->m_settings.windowHeight / (double) Chunk::height;
+
+                        uint32_t blockX = (uint32_t) (mouseX / blockWidth);
+                        uint32_t blockY = (uint32_t) (mouseY / blockHeight);
+
+                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = 1;
+                        game->m_currChunk.hasChanged = true;
+                }
+
+        }
+
 }
+
