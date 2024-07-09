@@ -105,7 +105,7 @@ namespace mc2d {
         {
                 if(!m_isInit)
                 {
-                        logWarn("Renderer::render() failed, render has not been initialized correctly!");
+                        logWarn("Renderer::renderWorld() failed, renderer has not been initialized correctly!");
                         return;
                 }
 
@@ -119,6 +119,9 @@ namespace mc2d {
                 {
                         computeWorldVertices(chunk, camera);
                         glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
+
+                        // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
+                        //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
                         chunk.hasChanged = false;
                 }
 
@@ -141,8 +144,10 @@ namespace mc2d {
                 {
                         for(uint32_t x = 0; x < Chunk::width; x++)
                         {
-                                // If the current block is solid then we need to compute vertices to render it
-                                if(chunk.blocks[ (y * Chunk::width) + x ] == 1)
+                                BlockType currBlock = chunk.blocks[ (y * Chunk::width) + x ];
+
+                                // If the current block is not air then we need to compute vertices to render it
+                                if(currBlock != Block::AIR)
                                 {
                                         // Compute top left vertex coordinates of the block
                                         float xPos = -1.0f + ((float)x * blockWidth);
@@ -173,8 +178,108 @@ namespace mc2d {
                         }
                 }
 
-                logInfo("Computed %u world vertices, %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
+                logInfo("Basic world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
         }
-      
+
+
+        // NEW CODE ===============
+
+        void Renderer::optimizedRenderWorld(Chunk& chunk, Camera& camera)
+        {
+                if(!m_isInit)
+                {
+                        logWarn("Renderer::optimizedRenderWorld() failed, renderer has not been initialized correctly!");
+                        return;
+                }
+
+                m_worldShader.activate();                       // Activate shader to render the world
+                glBindVertexArray(m_worldVao);                  // Bind world vao
+                //m_gameTileset.activate();
+
+                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
+                // that are visible and we need to update data in the world vbo
+                if(chunk.hasChanged)
+                {
+                        optimizedComputeWorldVertices(chunk, camera);
+                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
+
+                        // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
+                        //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
+                        chunk.hasChanged = false;
+                }
+
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
+        }
+
+
+        // Computes the vertices (in NDC coordinates) and the texture coordinates for all the blocks in the given chunk
+        // that are visible from the given camera. (uses an horizontal (1D) greedy meshing algorithm to do so)
+        void Renderer::optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera)
+        {
+                m_worldVerticesNum = 0;
+
+                // Determine block size
+                const float blockWidth = 2.0f / (float) Chunk::width;
+                const float blockHeight = 2.0f / (float) Chunk::height;
+
+                uint32_t limitX = Chunk::width;
+                uint32_t limitY = Chunk::height;
+
+                for(uint32_t y = 0; y < limitY; ++y)
+                {
+                        for(uint32_t x = 0; x < limitX; ++x)
+                        {
+                                BlockType startBlock = chunk.blocks[ (y * Chunk::width) + x ];
+
+                                if(startBlock == Block::AIR)     // Skip air blocks
+                                        continue;
+
+                                uint32_t endX;
+                                for(endX = x; x < limitX; ++endX)
+                                {
+                                        BlockType endBlock = chunk.blocks[ (y * Chunk::width) + endX ];
+
+                                        if(startBlock != endBlock)
+                                                break;
+                                }
+
+                                // Compute top left vertex coordinates of the rectangle
+                                float xPos = -1.0f + ((float)x * blockWidth);
+                                float yPos = 1.0f - (float) (y * blockWidth);
+
+                                float rectWidth = blockWidth * (float) (endX - x);
+                                float rectHeight = blockHeight;
+                                
+                                // First triangle
+                                m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // Bottom left x
+                                m_worldVertices[m_worldVerticesNum + 1] = yPos - rectHeight;    // Bottom left y
+
+                                m_worldVertices[m_worldVerticesNum + 2] = xPos + rectWidth;     // Bottom right x 
+                                m_worldVertices[m_worldVerticesNum + 3] = yPos - rectHeight;    // Bottom right y
+
+                                m_worldVertices[m_worldVerticesNum + 4] = xPos;                 // Top left x
+                                m_worldVertices[m_worldVerticesNum + 5] = yPos;                 // Top left y
+                                
+                                // Second triangle
+                                m_worldVertices[m_worldVerticesNum + 6] = xPos + rectWidth;     // Bottom right x
+                                m_worldVertices[m_worldVerticesNum + 7] = yPos - rectHeight;    // Bottom right y
+                                
+                                m_worldVertices[m_worldVerticesNum + 8] = xPos + rectWidth;     // Top right x
+                                m_worldVertices[m_worldVerticesNum + 9] = yPos;                 // Top right y
+                                
+                                m_worldVertices[m_worldVerticesNum + 10] = xPos;                // Top left x
+                                m_worldVertices[m_worldVerticesNum + 11] = yPos;                // Top left y
+                                
+                                m_worldVerticesNum += 12;
+
+                                x = endX - 1;
+                        }
+                }
+
+                logInfo("Optimized world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
+        }      
 }
+
+
 

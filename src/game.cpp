@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_optimizedDraw(false)
         {}
 
 
@@ -109,11 +109,24 @@ namespace mc2d {
                         return;
                 }
 
+                // Print available keys
+                logInfo("Available keys:");
+                logInfo("       press G to generate a random chunck");
+                logInfo("       press H to generate a flat world chunk");
+                logInfo("       press W to switch between solid and wireframe rendering");
+                logInfo("       press O to switch between optimized and basic world rendering\n");
+
                 m_currChunk.generate();
 
                 while(!glfwWindowShouldClose(m_window))
                 {
-                        m_renderer.renderWorld(m_currChunk, m_camera);
+                        // TODO: Remove this if statement when texting will be over
+                        if(m_optimizedDraw)
+                        {
+                                m_renderer.optimizedRenderWorld(m_currChunk, m_camera);
+                        } else {
+                                m_renderer.renderWorld(m_currChunk, m_camera);
+                        }
 
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
@@ -155,6 +168,27 @@ namespace mc2d {
                 // Debug code to regenerate chunk when G is pressed
                 if(key == GLFW_KEY_G && action == GLFW_PRESS)
                         game->m_currChunk.generate();
+
+                // Debug code to regenerate chunk when G is pressed
+                if(key == GLFW_KEY_H && action == GLFW_PRESS)
+                        game->m_currChunk.generateFlatChunk();
+
+                // Switch between solid and wireframe rendering
+                if(key == GLFW_KEY_W && action == GLFW_PRESS)
+                {
+                        static bool isWireframe = false;
+
+                        isWireframe = !isWireframe;
+                        isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                }
+
+                // TODO: Remove this if when testing will be over
+                // Switch between optimized and basic world rendering
+                if(key == GLFW_KEY_O && action == GLFW_PRESS)
+                {
+                        game->m_optimizedDraw = !game->m_optimizedDraw;
+                        logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
+                }
         }
 
 
@@ -179,6 +213,7 @@ namespace mc2d {
                         uint32_t blockX = (uint32_t) (mouseX / blockWidth);
                         uint32_t blockY = (uint32_t) (mouseY / blockHeight);
 
+                        logInfo("Deleted block of type: %d", game->m_currChunk.blocks[blockY * Chunk::width + blockX]);
                         game->m_currChunk.blocks[blockY * Chunk::width + blockX] = 0;
                         game->m_currChunk.hasChanged = true;
                 }

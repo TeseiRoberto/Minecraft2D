@@ -53,7 +53,9 @@ namespace mc2d {
                 Renderer        m_renderer;
 
                 Camera          m_camera;
-                Chunk           m_currChunk; // Temporary just for debug purpouses
+                Chunk           m_currChunk;            // TODO: Temporary just for debug purpouses
+        
+                bool            m_optimizedDraw;        // TODO: remove me when testing is over
         };
 
 }

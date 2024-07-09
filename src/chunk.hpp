@@ -7,9 +7,11 @@
 
 #include <vector>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <cstdint>
 
+#include "block.hpp"
 #include "logging.hpp"
 
 namespace mc2d {
@@ -19,9 +21,10 @@ namespace mc2d {
                 static uint8_t          height;                 // The height of the chunk (in blocks)
 
                 bool                    hasChanged;             // Flag used to indicate that a block has changed
-                std::vector<bool>       blocks;                 // Keeps track of all the blocks in the chunk
+                std::vector<BlockType>  blocks;                 // Keeps track of all the blocks in the chunk
 
                 void                    generate();
+                void                    generateFlatChunk();
         };
 }
 

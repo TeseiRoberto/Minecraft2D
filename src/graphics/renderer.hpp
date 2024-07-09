@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 
 #include "logging.hpp"
+#include "block.hpp"
 #include "chunk.hpp"
 #include "shader.hpp"
 #include "tileset.hpp"
@@ -33,6 +34,9 @@ namespace mc2d {
                 void    resizeViewport(int newWidth, int newHeight);
 
                 void    renderWorld(Chunk& chunk, Camera& camera);
+
+                void    optimizedRenderWorld(Chunk& chunk, Camera& camera);
+                void    optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera);
 
         private:
 
