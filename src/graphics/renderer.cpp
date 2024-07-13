@@ -29,7 +29,7 @@ namespace mc2d {
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
                 // Load the tileset that contains all the game's sprites
-                if(!m_gameTileset.load("../resources/blockTileset.png", 16, 16, 16, 16))
+                if(!m_gameTileset.load("../resources/myTileset.png", 5, 16, 16, 16))
                 {
                         logError("Renderer::init() failed, game tileset creation failed!");
                         return 1;
@@ -52,20 +52,7 @@ namespace mc2d {
                 glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
 
                 // Allocate space for world vbo
-                //glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 24, NULL, GL_DYNAMIC_DRAW);
-
-                // Quad for TEXTURE ARRAY tests
-                float v[] = {
-                        // X     Y       U     V   Tile id
-                        -0.5f, -0.5f,   0.0f, 0.0f, 257.0f,
-                        0.5f, -0.5f,    1.0f, 0.0f, 257.0f,
-                        -0.5f, 0.5f,    0.0f, 1.0f, 257.0f,
-
-                        0.5f, -0.5f,    1.0f, 0.0f, 257.0f,
-                        0.5f, 0.5f,     1.0f, 1.0f, 257.0f,
-                        -0.5f, 0.5f,    0.0f, 1.0f, 257.0f
-                };
-                glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 30, NULL, GL_DYNAMIC_DRAW);
 
                 // Define format of data in world vbo (so the vertex shader knows how to use such data)
                 // Vertex's X and y coordinates
@@ -80,7 +67,7 @@ namespace mc2d {
                 glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (4 * sizeof(float)) );
                 glEnableVertexAttribArray(2);
 
-                // Allocate memory buffer to compute world data
+                // Allocate a memory buffer to compute world data
                 m_worldVerticesNum = 0;
                 m_worldVertices = new float[ Chunk::width * Chunk::height * 30 ]; // 122.8 Kb of memory
                 
@@ -98,14 +85,14 @@ namespace mc2d {
                 m_gameTileset.deactivate();
                 m_gameTileset.unload();
 
-                m_worldVerticesNum = 0;
-                delete[] m_worldVertices;
-
                 m_worldShader.deactivate();
                 m_worldShader.terminate();
 
                 glDeleteVertexArrays(1, &m_worldVao);
                 glDeleteBuffers(1, &m_worldVbo);
+
+                m_worldVerticesNum = 0;
+                delete[] m_worldVertices;
 
                 m_isInit = false;
         }
@@ -135,7 +122,7 @@ namespace mc2d {
                 m_worldShader.activate();                       // Activate shader to render the world
                 glBindVertexArray(m_worldVao);                  // Bind world vao
                 m_gameTileset.activate();                       // Bind tileset's texture
-/*
+
                 // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
                 // that are visible and we need to update data in the world vbo
                 if(chunk.hasChanged)
@@ -149,10 +136,7 @@ namespace mc2d {
                 }
 
                 glClear(GL_COLOR_BUFFER_BIT);
-                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);*/
-
-                glClear(GL_COLOR_BUFFER_BIT);
-                glDrawArrays(GL_TRIANGLES, 0, 6);
+                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
         }
 
 
@@ -165,61 +149,67 @@ namespace mc2d {
                 // Determine block size
                 const float blockWidth = 2.0f / (float) Chunk::width;
                 const float blockHeight = 2.0f / (float) Chunk::height;
-/*
-                for(uint32_t y = 0; y < Chunk::height; y++)
+                uint32_t blockIndex = 0;
+
+                for(uint32_t y = 0; y < Chunk::height; ++y)
                 {
-                        for(uint32_t x = 0; x < Chunk::width; x++)
+                        for(uint32_t x = 0; x < Chunk::width; ++x)
                         {
-                                BlockType currBlock = chunk.blocks[ (y * Chunk::width) + x ];
+                                BlockType currBlock = chunk.blocks[blockIndex++];
 
                                 // If the current block is not air then we need to compute vertices to render it
-                                if(currBlock != Block::AIR)
+                                if(currBlock != BlockType::AIR)
                                 {
                                         // Compute top left vertex coordinates of the block
                                         float xPos = -1.0f + ((float)x * blockWidth);
                                         float yPos = 1.0f - (float) (y * blockWidth);
 
-                                        m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // Bottom left x
-                                        m_worldVertices[m_worldVerticesNum + 1] = yPos - rectHeight;    // Bottom left y
+                                        // First triangle bottom left vertex
+                                        m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
+                                        m_worldVertices[m_worldVerticesNum + 1] = yPos - blockHeight;   // y
+                                        m_worldVertices[m_worldVerticesNum + 2] = 0.0f;                 // u
+                                        m_worldVertices[m_worldVerticesNum + 3] = 0.0f;                 // v
+                                        m_worldVertices[m_worldVerticesNum + 4] = (float) currBlock;    // tile id
 
-                                        m_worldVertices[m_worldVerticesNum + 2] = yPos - rectHeight;    // Bottom left u
-                                        m_worldVertices[m_worldVerticesNum + 3] = yPos - rectHeight;    // Bottom left v
+                                        // First triangle bottom right vertex
+                                        m_worldVertices[m_worldVerticesNum + 5] = xPos + blockWidth;    // x
+                                        m_worldVertices[m_worldVerticesNum + 6] = yPos - blockHeight;   // y
+                                        m_worldVertices[m_worldVerticesNum + 7] = 1.0f;                 // u
+                                        m_worldVertices[m_worldVerticesNum + 8] = 0.0f;                 // v
+                                        m_worldVertices[m_worldVerticesNum + 9] = (float) currBlock;    // tile id
 
-                                        m_worldVertices[m_worldVerticesNum + 4] = xPos + rectWidth;     // Bottom right x 
-                                        m_worldVertices[m_worldVerticesNum + 5] = yPos - rectHeight;    // Bottom right y
-
-                                        m_worldVertices[m_worldVerticesNum + 6] = xPos + rectWidth;     // Bottom right u
-                                        m_worldVertices[m_worldVerticesNum + 7] = yPos - rectHeight;    // Bottom right v
-
-                                        m_worldVertices[m_worldVerticesNum + 8] = xPos;                 // Top left x
-                                        m_worldVertices[m_worldVerticesNum + 9] = yPos;                 // Top left y
-
-                                        m_worldVertices[m_worldVerticesNum + 10] = xPos;                 // Top left u
-                                        m_worldVertices[m_worldVerticesNum + 11] = yPos;                 // Top left v
+                                        // First triangle top left vertex
+                                        m_worldVertices[m_worldVerticesNum + 10] = xPos;                // x
+                                        m_worldVertices[m_worldVerticesNum + 11] = yPos;                // y
+                                        m_worldVertices[m_worldVerticesNum + 12] = 0.0f;                // u
+                                        m_worldVertices[m_worldVerticesNum + 13] = 1.0f;                // v
+                                        m_worldVertices[m_worldVerticesNum + 14] = (float) currBlock;   // tile id
                                         
-                                        // Second triangle
-                                        m_worldVertices[m_worldVerticesNum + 12] = xPos + rectWidth;     // Bottom right x
-                                        m_worldVertices[m_worldVerticesNum + 13] = yPos - rectHeight;    // Bottom right y
-
-                                        m_worldVertices[m_worldVerticesNum + 14] = xPos + rectWidth;     // Bottom right u
-                                        m_worldVertices[m_worldVerticesNum + 15] = yPos - rectHeight;    // Bottom right v
+                                        // Second triangle bottom right vertex
+                                        m_worldVertices[m_worldVerticesNum + 15] = xPos + blockWidth;   // x
+                                        m_worldVertices[m_worldVerticesNum + 16] = yPos - blockHeight;  // y
+                                        m_worldVertices[m_worldVerticesNum + 17] = 1.0f;                // u
+                                        m_worldVertices[m_worldVerticesNum + 18] = 0.0f;                // v
+                                        m_worldVertices[m_worldVerticesNum + 19] = (float) currBlock;   // tile id
                                         
-                                        m_worldVertices[m_worldVerticesNum + 16] = xPos + rectWidth;     // Top right x
-                                        m_worldVertices[m_worldVerticesNum + 17] = yPos;                 // Top right y
-
-                                        m_worldVertices[m_worldVerticesNum + 18] = xPos + rectWidth;     // Top right u
-                                        m_worldVertices[m_worldVerticesNum + 19] = yPos;                 // Top right v
+                                        // Second triangle top right vertex
+                                        m_worldVertices[m_worldVerticesNum + 20] = xPos + blockWidth;   // x
+                                        m_worldVertices[m_worldVerticesNum + 21] = yPos;                // y
+                                        m_worldVertices[m_worldVerticesNum + 22] = 1.0f;                // u
+                                        m_worldVertices[m_worldVerticesNum + 23] = 1.0f;                // v
+                                        m_worldVertices[m_worldVerticesNum + 24] = (float) currBlock;   // tile id
                                         
-                                        m_worldVertices[m_worldVerticesNum + 20] = xPos;                // Top left x
-                                        m_worldVertices[m_worldVerticesNum + 21] = yPos;                // Top left y
-                                
-                                        m_worldVertices[m_worldVerticesNum + 22] = xPos;                // Top left u
-                                        m_worldVertices[m_worldVerticesNum + 23] = yPos;                // Top left v
+                                        // Second triangle top left vertex
+                                        m_worldVertices[m_worldVerticesNum + 25] = xPos;                // x
+                                        m_worldVertices[m_worldVerticesNum + 26] = yPos;                // y
+                                        m_worldVertices[m_worldVerticesNum + 27] = 0.0f;                // u
+                                        m_worldVertices[m_worldVerticesNum + 28] = 1.0f;                // v
+                                        m_worldVertices[m_worldVerticesNum + 29] = (float) currBlock;   // tile id
                                         
-                                        m_worldVerticesNum += 24;
+                                        m_worldVerticesNum += 30;
                                 }
                         }
-                }*/
+                }
 
                 logInfo("Basic world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
         }
@@ -233,7 +223,7 @@ namespace mc2d {
                         logWarn("Renderer::optimizedRenderWorld() failed, renderer has not been initialized correctly!");
                         return;
                 }
-/*
+
                 m_worldShader.activate();                       // Activate shader to render the world
                 glBindVertexArray(m_worldVao);                  // Bind world vao
                 m_gameTileset.activate();                       // Bind tileset's texture
@@ -251,8 +241,7 @@ namespace mc2d {
                 }
 
                 glClear(GL_COLOR_BUFFER_BIT);
-                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);*/
-                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
         }
 
 
@@ -266,22 +255,19 @@ namespace mc2d {
                 const float blockWidth = 2.0f / (float) Chunk::width;
                 const float blockHeight = 2.0f / (float) Chunk::height;
 
-                uint32_t limitX = Chunk::width;
-                uint32_t limitY = Chunk::height;
-
-                for(uint32_t y = 0; y < limitY; ++y)
+                for(uint32_t y = 0; y < Chunk::height; ++y)
                 {
-                        for(uint32_t x = 0; x < limitX; ++x)
+                        for(uint32_t x = 0; x < Chunk::width; ++x)
                         {
-                                BlockType startBlock = chunk.blocks[ (y * Chunk::width) + x ];
+                                BlockType startBlock = chunk.blocks[(y * Chunk::width) + x];
 
-                                if(startBlock == Block::AIR)     // Skip air blocks
+                                if(startBlock == BlockType::AIR)     // Skip air blocks
                                         continue;
 
                                 uint32_t endX;
-                                for(endX = x; x < limitX; ++endX)
+                                for(endX = x; x < Chunk::width; ++endX)
                                 {
-                                        BlockType endBlock = chunk.blocks[ (y * Chunk::width) + endX ];
+                                        BlockType endBlock = chunk.blocks[(y * Chunk::width) + endX];
 
                                         if(startBlock != endBlock)
                                                 break;
@@ -292,50 +278,51 @@ namespace mc2d {
                                 float yPos = 1.0f - (float) (y * blockWidth);
 
                                 float rectWidth = blockWidth * (float) (endX - x);
-                                float rectHeight = blockHeight;
+                                float rectHeight = blockHeight;                         // We are using 1D greedy meshing for now (2D would be a lot better)...
                                
-        // TODO: Need to compute texture's UV
+                                // First triangle bottom left vertex
+                                m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
+                                m_worldVertices[m_worldVerticesNum + 1] = yPos - rectHeight;    // y
+                                m_worldVertices[m_worldVerticesNum + 2] = 0.0f;                 // u
+                                m_worldVertices[m_worldVerticesNum + 3] = 0.0f;                 // v
+                                m_worldVertices[m_worldVerticesNum + 4] = (float) startBlock;   // tile id
 
-                                // First triangle
-                                m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // Bottom left x
-                                m_worldVertices[m_worldVerticesNum + 1] = yPos - rectHeight;    // Bottom left y
+                                // First triangle bottom right vertex
+                                m_worldVertices[m_worldVerticesNum + 5] = xPos + rectWidth;     // x 
+                                m_worldVertices[m_worldVerticesNum + 6] = yPos - rectHeight;    // y
+                                m_worldVertices[m_worldVerticesNum + 7] = (float) (endX - x);   // u
+                                m_worldVertices[m_worldVerticesNum + 8] = 0.0f;                 // v
+                                m_worldVertices[m_worldVerticesNum + 9] = (float) startBlock;   // tile id
 
-                                m_worldVertices[m_worldVerticesNum + 2] = yPos - rectHeight;    // Bottom left u
-                                m_worldVertices[m_worldVerticesNum + 3] = yPos - rectHeight;    // Bottom left v
-
-                                m_worldVertices[m_worldVerticesNum + 4] = xPos + rectWidth;     // Bottom right x 
-                                m_worldVertices[m_worldVerticesNum + 5] = yPos - rectHeight;    // Bottom right y
-
-                                m_worldVertices[m_worldVerticesNum + 6] = xPos + rectWidth;     // Bottom right u
-                                m_worldVertices[m_worldVerticesNum + 7] = yPos - rectHeight;    // Bottom right v
-
-                                m_worldVertices[m_worldVerticesNum + 8] = xPos;                 // Top left x
-                                m_worldVertices[m_worldVerticesNum + 9] = yPos;                 // Top left y
-
-                                m_worldVertices[m_worldVerticesNum + 10] = xPos;                 // Top left u
-                                m_worldVertices[m_worldVerticesNum + 11] = yPos;                 // Top left v
+                                // First triangle top left vertex
+                                m_worldVertices[m_worldVerticesNum + 10] = xPos;                // x
+                                m_worldVertices[m_worldVerticesNum + 11] = yPos;                // y
+                                m_worldVertices[m_worldVerticesNum + 12] = 0.0f;                // u
+                                m_worldVertices[m_worldVerticesNum + 13] = 1.0f;                // v
+                                m_worldVertices[m_worldVerticesNum + 14] = (float) startBlock;  // tile id
                                 
-                                // Second triangle
-                                m_worldVertices[m_worldVerticesNum + 12] = xPos + rectWidth;     // Bottom right x
-                                m_worldVertices[m_worldVerticesNum + 13] = yPos - rectHeight;    // Bottom right y
-
-                                m_worldVertices[m_worldVerticesNum + 14] = xPos + rectWidth;     // Bottom right u
-                                m_worldVertices[m_worldVerticesNum + 15] = yPos - rectHeight;    // Bottom right v
+                                // Second triangle bottom right vertex
+                                m_worldVertices[m_worldVerticesNum + 15] = xPos + rectWidth;    // x
+                                m_worldVertices[m_worldVerticesNum + 16] = yPos - rectHeight;   // y
+                                m_worldVertices[m_worldVerticesNum + 17] = (float) (endX - x);  // u
+                                m_worldVertices[m_worldVerticesNum + 18] = 0.0f;                // v
+                                m_worldVertices[m_worldVerticesNum + 19] = (float) startBlock;  // tile id
                                 
-                                m_worldVertices[m_worldVerticesNum + 16] = xPos + rectWidth;     // Top right x
-                                m_worldVertices[m_worldVerticesNum + 17] = yPos;                 // Top right y
-
-                                m_worldVertices[m_worldVerticesNum + 18] = xPos + rectWidth;     // Top right u
-                                m_worldVertices[m_worldVerticesNum + 19] = yPos;                 // Top right v
+                                // Second triangle top right vertex
+                                m_worldVertices[m_worldVerticesNum + 20] = xPos + rectWidth;    // x
+                                m_worldVertices[m_worldVerticesNum + 21] = yPos;                // y
+                                m_worldVertices[m_worldVerticesNum + 22] = (float) (endX - x);  // u
+                                m_worldVertices[m_worldVerticesNum + 23] = 1.0f;                // v
+                                m_worldVertices[m_worldVerticesNum + 24] = (float) startBlock;  // tile id
                                 
-                                m_worldVertices[m_worldVerticesNum + 20] = xPos;                // Top left x
-                                m_worldVertices[m_worldVerticesNum + 21] = yPos;                // Top left y
-                        
-                                m_worldVertices[m_worldVerticesNum + 22] = xPos;                // Top left u
-                                m_worldVertices[m_worldVerticesNum + 23] = yPos;                // Top left v
+                                // Second triangle top left vertex
+                                m_worldVertices[m_worldVerticesNum + 25] = xPos;                // x
+                                m_worldVertices[m_worldVerticesNum + 26] = yPos;                // y
+                                m_worldVertices[m_worldVerticesNum + 27] = 0.0f;                // u
+                                m_worldVertices[m_worldVerticesNum + 28] = 1.0f;                // v
+                                m_worldVertices[m_worldVerticesNum + 29] = (float) startBlock;  // tile id
                                 
-                                m_worldVerticesNum += 24;
-
+                                m_worldVerticesNum += 30;
                                 x = endX - 1;
                         }
                 }

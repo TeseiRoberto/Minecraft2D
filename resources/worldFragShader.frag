@@ -3,11 +3,11 @@
 in vec2 uv;
 in float tileId;
 
-uniform sampler2DArray grassTexture;
+uniform sampler2DArray tilesetArray;
 
 out vec4 outColor;
 
 void main()
 {
-        outColor = texture(grassTexture, vec3(uv, tileId));
+        outColor = texture(tilesetArray, vec3(uv, tileId));
 }

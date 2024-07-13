@@ -8,9 +8,12 @@ project(Minecraft2D VERSION 1.0)
 set (SRCS
         libs/glad/src/glad.c
         libs/stbImage/stb_image.c
+
         src/main.cpp
         src/game.cpp
+        src/block.cpp
         src/chunk.cpp
+
         src/graphics/shader.cpp
         src/graphics/renderer.cpp
         src/graphics/tileset.cpp

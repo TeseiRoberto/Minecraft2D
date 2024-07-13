@@ -56,6 +56,7 @@ namespace mc2d {
                 Chunk           m_currChunk;            // TODO: Temporary just for debug purpouses
         
                 bool            m_optimizedDraw;        // TODO: remove me when testing is over
+                BlockType       m_cursorBlockType;      // Which type of block will be placed in the world when right mouse is clicked
         };
 
 }

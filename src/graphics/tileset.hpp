@@ -37,7 +37,7 @@ namespace mc2d {
                 inline const uint32_t   getRowsNum() const      { return m_rows; }
                 inline const uint32_t   getColsNum() const      { return m_cols; }
                 inline const uint32_t   getTileWidth() const    { return m_tileWidth; }
-                inline const uint32_t   getTileHeight() const   { return m_tiileHeight; }
+                inline const uint32_t   getTileHeight() const   { return m_tileHeight; }
 
         private:
                 bool            createTextureArray(unsigned char* imgData, int imgChannelsNum, uint32_t rows, uint32_t cols, uint32_t tileWidth, uint32_t tileHeight);

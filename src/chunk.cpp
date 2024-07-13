@@ -3,8 +3,8 @@
 
 namespace mc2d {
 
-        uint8_t Chunk::width = 32;
-        uint8_t Chunk::height = 32;
+        uint8_t Chunk::width = 24;
+        uint8_t Chunk::height = 24;
 
 
         // Generates a completely random chunk
@@ -19,9 +19,9 @@ namespace mc2d {
                         {
                                 if(std::rand() % 2 == 0)
                                 {
-                                        blocks[(y * Chunk::width) + x] = 0;
+                                        blocks[(y * Chunk::width) + x] = BlockType::AIR;
                                 } else {
-                                        blocks[(y * Chunk::width) + x] = 1;
+                                        blocks[(y * Chunk::width) + x] = BlockType::GRASS;
                                 }
                         }
                 }
@@ -38,19 +38,19 @@ namespace mc2d {
                 uint32_t offset = 0;
 
                 // Half of the chunk must be filled with air blocks
-                std::memset(blocks.data(), 0, (Chunk::height / 2) * Chunk::width);
+                std::memset(blocks.data(), static_cast<uint8_t>(BlockType::AIR), (Chunk::height / 2) * Chunk::width);
                 offset += ((Chunk::height / 2) * Chunk::width);
 
                 // then we add a layer of grass
-                std::memset(blocks.data() + offset, 1, Chunk::width);
+                std::memset(blocks.data() + offset, static_cast<uint8_t>(BlockType::GRASS), Chunk::width);
                 offset += Chunk::width;
 
                 // then we add two layers of dirt
-                std::memset(blocks.data() + offset, 2, Chunk::width * 2);
+                std::memset(blocks.data() + offset, static_cast<uint8_t>(BlockType::DIRT), Chunk::width * 2);
                 offset += Chunk::width * 2;
 
                 // and then we add stone blocks until the end of the chunk
-                std::memset(blocks.data() + offset, 3, ((Chunk::height / 2) - 3)  * Chunk::width );
+                std::memset(blocks.data() + offset, static_cast<uint8_t>(BlockType::STONE), ((Chunk::height / 2) - 3)  * Chunk::width );
                 hasChanged = true;
         }
 }

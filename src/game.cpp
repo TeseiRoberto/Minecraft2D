@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_optimizedDraw(false)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
 
@@ -109,12 +109,20 @@ namespace mc2d {
                         return;
                 }
 
-                // Print available keys
-                logInfo("Available keys:");
+                // Print available inputs
+                logInfo("Available inputs:");
+                logInfo("Chunk stuff:");
                 logInfo("       press G to generate a random chunck");
                 logInfo("       press H to generate a flat world chunk");
+
+                logInfo("Rendering stuff:");
                 logInfo("       press W to switch between solid and wireframe rendering");
-                logInfo("       press O to switch between optimized and basic world rendering\n");
+                logInfo("       press O to switch between optimized and basic world rendering");
+                
+                logInfo("Block stuff:");
+                logInfo("       left mouse click to delete a block");
+                logInfo("       right mouse click to place a block");
+                logInfo("       press 1 and 2 to change the block type that will be placed\n");
 
                 m_currChunk.generate();
 
@@ -182,6 +190,20 @@ namespace mc2d {
                         isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                 }
 
+                // Change cursor block type to the previous one
+                if(key == GLFW_KEY_1 && action == GLFW_PRESS)
+                {
+                        if(game->m_cursorBlockType != BlockType::GRASS)
+                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType - 1);
+                }
+
+                // Change cursor block type to the next one
+                if(key == GLFW_KEY_2 && action == GLFW_PRESS)
+                {
+                        if(game->m_cursorBlockType != BlockType::AIR)
+                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType + 1);
+                }
+
                 // TODO: Remove this if when testing will be over
                 // Switch between optimized and basic world rendering
                 if(key == GLFW_KEY_O && action == GLFW_PRESS)
@@ -214,7 +236,7 @@ namespace mc2d {
                         uint32_t blockY = (uint32_t) (mouseY / blockHeight);
 
                         logInfo("Deleted block of type: %d", game->m_currChunk.blocks[blockY * Chunk::width + blockX]);
-                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = 0;
+                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = BlockType::AIR;
                         game->m_currChunk.hasChanged = true;
                 }
 
@@ -230,7 +252,7 @@ namespace mc2d {
                         uint32_t blockX = (uint32_t) (mouseX / blockWidth);
                         uint32_t blockY = (uint32_t) (mouseY / blockHeight);
 
-                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = 1;
+                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = game->m_cursorBlockType;
                         game->m_currChunk.hasChanged = true;
                 }
 
