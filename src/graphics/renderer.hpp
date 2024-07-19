@@ -33,14 +33,13 @@ namespace mc2d {
                 void    terminate();
                 void    resizeViewport(int newWidth, int newHeight);
 
-                void    renderWorld(Chunk& chunk, Camera& camera);
+                void    renderWorld(Chunk& chunk, Camera& camera, bool optimized);
 
-                void    optimizedRenderWorld(Chunk& chunk, Camera& camera);
-                void    optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera);
 
         private:
 
                 void            computeWorldVertices(const Chunk& chunk, const Camera& camera);
+                void            optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera);
 
                 bool            m_isInit;
                 Tileset         m_gameTileset;

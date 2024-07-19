@@ -4,7 +4,8 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 0.0f, 1.0f, 18, 18)),
+                m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
 
@@ -109,32 +110,12 @@ namespace mc2d {
                         return;
                 }
 
-                // Print available inputs
-                logInfo("Available inputs:");
-                logInfo("Chunk stuff:");
-                logInfo("       press G to generate a random chunck");
-                logInfo("       press H to generate a flat world chunk");
-
-                logInfo("Rendering stuff:");
-                logInfo("       press W to switch between solid and wireframe rendering");
-                logInfo("       press O to switch between optimized and basic world rendering");
-                
-                logInfo("Block stuff:");
-                logInfo("       left mouse click to delete a block");
-                logInfo("       right mouse click to place a block");
-                logInfo("       press 1 and 2 to change the block type that will be placed\n");
-
-                m_currChunk.generate();
+                printHelp();
+                m_currChunk.generateRandom();
 
                 while(!glfwWindowShouldClose(m_window))
                 {
-                        // TODO: Remove this if statement when texting will be over
-                        if(m_optimizedDraw)
-                        {
-                                m_renderer.optimizedRenderWorld(m_currChunk, m_camera);
-                        } else {
-                                m_renderer.renderWorld(m_currChunk, m_camera);
-                        }
+                        m_renderer.renderWorld(m_currChunk, m_camera, m_optimizedDraw);
 
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
@@ -173,46 +154,89 @@ namespace mc2d {
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
 
-                // Debug code to regenerate chunk when G is pressed
-                if(key == GLFW_KEY_G && action == GLFW_PRESS)
-                        game->m_currChunk.generate();
-
-                // Debug code to regenerate chunk when G is pressed
-                if(key == GLFW_KEY_H && action == GLFW_PRESS)
-                        game->m_currChunk.generateFlatChunk();
-
-                // Switch between solid and wireframe rendering
-                if(key == GLFW_KEY_W && action == GLFW_PRESS)
+                if(action == GLFW_PRESS)
                 {
-                        static bool isWireframe = false;
+                        switch(key)
+                        {
+                                // Debug code to generate random chunk when G is pressed
+                                case GLFW_KEY_G:
+                                        game->m_currChunk.generateRandom();
+                                        break;
 
-                        isWireframe = !isWireframe;
-                        isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                // Debug code to generate flat chunk when F is pressed
+                                case GLFW_KEY_F:
+                                        game->m_currChunk.generateFlatChunk();
+                                        break;
+
+                                // Change cursor block type to the previous one
+                                case GLFW_KEY_1:
+                                        if(game->m_cursorBlockType != BlockType::GRASS)
+                                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType - 1);
+                                        break;
+
+                                // Change cursor block type to the next one
+                                case GLFW_KEY_2:
+                                        if(game->m_cursorBlockType != BlockType::AIR)
+                                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType + 1);
+                                        break;
+
+                                // Switch between solid and wireframe rendering
+                                case GLFW_KEY_W: {
+                                        static bool isWireframe = false;
+
+                                        isWireframe = !isWireframe;
+                                        isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                                        } break;
+
+                                // Switch between optimized and basic world rendering (TODO: Remove this when renderer testing will be over)
+                                case GLFW_KEY_O:
+                                        game->m_optimizedDraw = !game->m_optimizedDraw;
+                                        logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
+                                        break;
+
+                                // Print controls list in console
+                                case GLFW_KEY_H:
+                                        game->printHelp();
+                                        break;
+
+                                // Camera movement
+                                case GLFW_KEY_LEFT:     
+                                        game->m_camera.updatePos(-1.0f, 0.0f);
+                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
+                                        break;
+
+                                case GLFW_KEY_RIGHT:
+                                        game->m_camera.updatePos(1.0f, 0.0f);
+                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
+                                        break;
+
+                                case GLFW_KEY_UP:
+                                        game->m_camera.updatePos(0.0f, 1.0f);
+                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
+                                        break;
+
+                                case GLFW_KEY_DOWN:
+                                        game->m_camera.updatePos(0.0f, -1.0f);
+                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
+                                        break;
+
+                                // Camera resize
+                                case GLFW_KEY_KP_ADD:
+                                        game->m_camera.setWidth(game->m_camera.getWidth() - 1);
+                                        game->m_camera.setHeight(game->m_camera.getHeight() - 1);
+                                        logWarn("Camera resized to (%u, %u)", game->m_camera.getWidth(), game->m_camera.getHeight());
+                                        break;
+
+                                case GLFW_KEY_KP_SUBTRACT:
+                                        game->m_camera.setWidth(game->m_camera.getWidth() + 1);
+                                        game->m_camera.setHeight(game->m_camera.getHeight() + 1);
+                                        logWarn("Camera resized to (%u, %u)", game->m_camera.getWidth(), game->m_camera.getHeight());
+                                        break;
+                        }
                 }
 
-                // Change cursor block type to the previous one
-                if(key == GLFW_KEY_1 && action == GLFW_PRESS)
-                {
-                        if(game->m_cursorBlockType != BlockType::GRASS)
-                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType - 1);
-                }
-
-                // Change cursor block type to the next one
-                if(key == GLFW_KEY_2 && action == GLFW_PRESS)
-                {
-                        if(game->m_cursorBlockType != BlockType::AIR)
-                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType + 1);
-                }
-
-                // TODO: Remove this if when testing will be over
-                // Switch between optimized and basic world rendering
-                if(key == GLFW_KEY_O && action == GLFW_PRESS)
-                {
-                        game->m_optimizedDraw = !game->m_optimizedDraw;
-                        logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
-                }
         }
-
+        
 
         // Callback invoked when the game window receives a mouse button event
         // @wnd: the window that received the mouse button event
@@ -256,6 +280,32 @@ namespace mc2d {
                         game->m_currChunk.hasChanged = true;
                 }
 
+        }
+
+
+        // Prints some info about the game controls in the console
+        void Game::printHelp()
+        {
+                logInfo("Available controls:");
+                logInfo("Chunk controls:");
+                logInfo("       press G to generate a random chunck");
+                logInfo("       press F to generate a flat world chunk");
+
+                logInfo("Rendering controls:");
+                logInfo("       press W to switch between solid and wireframe rendering");
+                logInfo("       press O to switch between optimized and basic world rendering");
+                
+                logInfo("Block controls:");
+                logInfo("       left mouse click to delete a block");
+                logInfo("       right mouse click to place a block");
+                logInfo("       press 1 and 2 to change the block type that will be placed");
+
+                logInfo("Camera controls:");
+                logInfo("       use arrows to move the camera around");
+                logInfo("       use keypad + and keypad - to change camera size");
+
+                logInfo("Other controls:");
+                logInfo("       press H to show this controls list\n");
         }
 
 }

@@ -111,7 +111,7 @@ namespace mc2d {
 
 
         // Renders all the blocks in the given game world that are visible from the given camera
-        void Renderer::renderWorld(Chunk& chunk, Camera& camera)
+        void Renderer::renderWorld(Chunk& chunk, Camera& camera, bool optimized)
         {
                 if(!m_isInit)
                 {
@@ -119,19 +119,29 @@ namespace mc2d {
                         return;
                 }
 
-                m_worldShader.activate();                       // Activate shader to render the world
-                glBindVertexArray(m_worldVao);                  // Bind world vao
-                m_gameTileset.activate();                       // Bind tileset's texture
+                m_worldShader.activate();                                               // Activate shader to render the world
+                
+                // Compute view-projection matrix and set uniform
+                glm::mat4 vpMatrix = glm::ortho(0.0f, (float) camera.getWidth(), 0.0f, (float) camera.getHeight()) * camera.getViewMatrix();
+                int viewMatUniform = m_worldShader.getUniformId("transformMatrix");
+                m_worldShader.setUniform(viewMatUniform, vpMatrix);
+
+                glBindVertexArray(m_worldVao);                                          // Bind world vao
+                m_gameTileset.activate();                                               // Bind tileset's texture
 
                 // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
                 // that are visible and we need to update data in the world vbo
                 if(chunk.hasChanged)
                 {
-                        computeWorldVertices(chunk, camera);
-                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
+                        if(optimized)
+                                optimizedComputeWorldVertices(chunk, camera);
+                        else
+                                computeWorldVertices(chunk, camera);
 
                         // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
                         //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
+                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
+
                         chunk.hasChanged = false;
                 }
 
@@ -145,10 +155,6 @@ namespace mc2d {
         void Renderer::computeWorldVertices(const Chunk& chunk, const Camera& camera)
         {
                 m_worldVerticesNum = 0;
-
-                // Determine block size
-                const float blockWidth = 2.0f / (float) Chunk::width;
-                const float blockHeight = 2.0f / (float) Chunk::height;
                 uint32_t blockIndex = 0;
 
                 for(uint32_t y = 0; y < Chunk::height; ++y)
@@ -161,19 +167,19 @@ namespace mc2d {
                                 if(currBlock != BlockType::AIR)
                                 {
                                         // Compute top left vertex coordinates of the block
-                                        float xPos = -1.0f + ((float)x * blockWidth);
-                                        float yPos = 1.0f - (float) (y * blockWidth);
+                                        float xPos = (float) x * BLOCK_WIDTH;
+                                        float yPos = (float) y * BLOCK_HEIGHT;
 
                                         // First triangle bottom left vertex
                                         m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
-                                        m_worldVertices[m_worldVerticesNum + 1] = yPos - blockHeight;   // y
+                                        m_worldVertices[m_worldVerticesNum + 1] = yPos - BLOCK_HEIGHT;  // y
                                         m_worldVertices[m_worldVerticesNum + 2] = 0.0f;                 // u
                                         m_worldVertices[m_worldVerticesNum + 3] = 0.0f;                 // v
                                         m_worldVertices[m_worldVerticesNum + 4] = (float) currBlock;    // tile id
 
                                         // First triangle bottom right vertex
-                                        m_worldVertices[m_worldVerticesNum + 5] = xPos + blockWidth;    // x
-                                        m_worldVertices[m_worldVerticesNum + 6] = yPos - blockHeight;   // y
+                                        m_worldVertices[m_worldVerticesNum + 5] = xPos + BLOCK_WIDTH;   // x
+                                        m_worldVertices[m_worldVerticesNum + 6] = yPos - BLOCK_HEIGHT;  // y
                                         m_worldVertices[m_worldVerticesNum + 7] = 1.0f;                 // u
                                         m_worldVertices[m_worldVerticesNum + 8] = 0.0f;                 // v
                                         m_worldVertices[m_worldVerticesNum + 9] = (float) currBlock;    // tile id
@@ -186,14 +192,14 @@ namespace mc2d {
                                         m_worldVertices[m_worldVerticesNum + 14] = (float) currBlock;   // tile id
                                         
                                         // Second triangle bottom right vertex
-                                        m_worldVertices[m_worldVerticesNum + 15] = xPos + blockWidth;   // x
-                                        m_worldVertices[m_worldVerticesNum + 16] = yPos - blockHeight;  // y
+                                        m_worldVertices[m_worldVerticesNum + 15] = xPos + BLOCK_WIDTH;  // x
+                                        m_worldVertices[m_worldVerticesNum + 16] = yPos - BLOCK_HEIGHT; // y
                                         m_worldVertices[m_worldVerticesNum + 17] = 1.0f;                // u
                                         m_worldVertices[m_worldVerticesNum + 18] = 0.0f;                // v
                                         m_worldVertices[m_worldVerticesNum + 19] = (float) currBlock;   // tile id
                                         
                                         // Second triangle top right vertex
-                                        m_worldVertices[m_worldVerticesNum + 20] = xPos + blockWidth;   // x
+                                        m_worldVertices[m_worldVerticesNum + 20] = xPos + BLOCK_WIDTH;  // x
                                         m_worldVertices[m_worldVerticesNum + 21] = yPos;                // y
                                         m_worldVertices[m_worldVerticesNum + 22] = 1.0f;                // u
                                         m_worldVertices[m_worldVerticesNum + 23] = 1.0f;                // v
@@ -211,37 +217,7 @@ namespace mc2d {
                         }
                 }
 
-                logInfo("Basic world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
-        }
-
-
-        // Renders all the blocks in the given game world that are visible from the given camera
-        void Renderer::optimizedRenderWorld(Chunk& chunk, Camera& camera)
-        {
-                if(!m_isInit)
-                {
-                        logWarn("Renderer::optimizedRenderWorld() failed, renderer has not been initialized correctly!");
-                        return;
-                }
-
-                m_worldShader.activate();                       // Activate shader to render the world
-                glBindVertexArray(m_worldVao);                  // Bind world vao
-                m_gameTileset.activate();                       // Bind tileset's texture
-
-                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
-                // that are visible and we need to update data in the world vbo
-                if(chunk.hasChanged)
-                {
-                        optimizedComputeWorldVertices(chunk, camera);
-                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
-
-                        // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
-                        //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
-                        chunk.hasChanged = false;
-                }
-
-                glClear(GL_COLOR_BUFFER_BIT);
-                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
+                logInfo("Basic world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 30);
         }
 
 
@@ -250,10 +226,6 @@ namespace mc2d {
         void Renderer::optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera)
         {
                 m_worldVerticesNum = 0;
-
-                // Determine block size
-                const float blockWidth = 2.0f / (float) Chunk::width;
-                const float blockHeight = 2.0f / (float) Chunk::height;
 
                 for(uint32_t y = 0; y < Chunk::height; ++y)
                 {
@@ -265,7 +237,7 @@ namespace mc2d {
                                         continue;
 
                                 uint32_t endX;
-                                for(endX = x; x < Chunk::width; ++endX)
+                                for(endX = x; endX < Chunk::width; ++endX)
                                 {
                                         BlockType endBlock = chunk.blocks[(y * Chunk::width) + endX];
 
@@ -274,11 +246,11 @@ namespace mc2d {
                                 }
 
                                 // Compute top left vertex coordinates of the rectangle
-                                float xPos = -1.0f + ((float)x * blockWidth);
-                                float yPos = 1.0f - (float) (y * blockWidth);
+                                float xPos = (float) x * BLOCK_WIDTH;
+                                float yPos = (float) y * BLOCK_HEIGHT;
 
-                                float rectWidth = blockWidth * (float) (endX - x);
-                                float rectHeight = blockHeight;                         // We are using 1D greedy meshing for now (2D would be a lot better)...
+                                float rectWidth = BLOCK_WIDTH * (float) (endX - x);
+                                float rectHeight = BLOCK_HEIGHT;                                // We are using 1D greedy meshing for now (2D would be a lot better)...
                                
                                 // First triangle bottom left vertex
                                 m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
@@ -327,7 +299,7 @@ namespace mc2d {
                         }
                 }
 
-                logInfo("Optimized world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 12);
+                logInfo("Optimized world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 30);
         }      
 }
 

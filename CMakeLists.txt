@@ -16,10 +16,11 @@ set (SRCS
 
         src/graphics/shader.cpp
         src/graphics/renderer.cpp
+        src/graphics/camera.cpp
         src/graphics/tileset.cpp
 )
 
 add_executable(minecraft2D ${SRCS})
 
-target_include_directories(minecraft2D PRIVATE src/ libs/glad/include/ libs/stbImage)#libs/glm/
+target_include_directories(minecraft2D PRIVATE src/ libs/glad/include/ libs/stbImage libs/glm/)
 target_link_libraries(minecraft2D glfw)

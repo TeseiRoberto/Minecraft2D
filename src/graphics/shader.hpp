@@ -8,6 +8,8 @@
 #include <fstream>
 #include <cstdint>
 #include <glad/glad.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "logging.hpp"
 
@@ -33,6 +35,7 @@ namespace mc2d {
                 inline void     deactivate() const      { glUseProgram(0); }
 
                 int             getUniformId(const std::string& uniformName) const;
+                void            setUniform(int uniformId, const glm::mat4x4& value) const;
 
         private:
 

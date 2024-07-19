@@ -45,6 +45,7 @@ namespace mc2d {
                 static void     onWindowResize(GLFWwindow* wnd, int width, int height);
                 static void     onKeyEvent(GLFWwindow* wnd, int key, int scancode, int action, int mods);
                 static void     onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int modifiers);
+                void            printHelp();
 
 
                 GameState       m_gameState;                    // The current state of the game

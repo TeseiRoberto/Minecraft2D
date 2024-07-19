@@ -63,7 +63,7 @@ namespace mc2d {
         {
                 if(!isValid())
                 {
-                        logWarn("Shader::activate() failed, trying to use an invalid shader program!");
+                        logError("Shader::activate() failed, trying to use an invalid shader program!");
                         return;
                 }
 
@@ -78,17 +78,38 @@ namespace mc2d {
         {
                 if(!isValid())
                 {
-                        logWarn("Shader::getUniformId() failed, shader has not been initialized!");
+                        logError("Shader::getUniformId() failed, shader has not been initialized!");
                         return -1;
                 }
 
                 if(uniformName.size() == 0)
                 {
-                        logWarn("Shader::getUniformId() failed, given uniform name is empty!");
+                        logError("Shader::getUniformId() failed, given uniform name is empty!");
                         return -1;
                 }
 
                 return glGetUniformLocation(m_programId, uniformName.c_str());
+        }
+
+
+        // Set value for the given uniform
+        // @uniform: id of the uniform to be setted
+        // @value: value used to set the uniform
+        void Shader::setUniform(int uniformId, const glm::mat4x4& value) const
+        {
+                if(!isValid())
+                {
+                        logWarn("Shader::setUniform() failed, shader has not been initialized!");
+                        return;
+                }
+
+                if(uniformId == -1)
+                {
+                        logWarn("Shader::setUniform() failed, given uniform id is invalid!");
+                        return;
+                }
+
+                glUniformMatrix4fv(uniformId, 1, GL_FALSE, glm::value_ptr(value));
         }
 
 

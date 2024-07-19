@@ -16,6 +16,9 @@
 
 namespace mc2d {
 
+        constexpr float BLOCK_WIDTH = 1.0f;
+        constexpr float BLOCK_HEIGHT = 1.0f;
+
         struct Chunk {
                 static uint8_t          width;                  // The width of the chunk (in blocks)
                 static uint8_t          height;                 // The height of the chunk (in blocks)
@@ -23,7 +26,7 @@ namespace mc2d {
                 bool                    hasChanged;             // Flag used to indicate that a block has changed
                 std::vector<BlockType>  blocks;                 // Keeps track of all the blocks in the chunk
 
-                void                    generate();
+                void                    generateRandom();
                 void                    generateFlatChunk();
         };
 }

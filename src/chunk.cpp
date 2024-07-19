@@ -3,12 +3,12 @@
 
 namespace mc2d {
 
-        uint8_t Chunk::width = 24;
-        uint8_t Chunk::height = 24;
+        uint8_t Chunk::width = 18;
+        uint8_t Chunk::height = 18;
 
 
         // Generates a completely random chunk
-        void Chunk::generate()
+        void Chunk::generateRandom()
         {
                 blocks.reserve(Chunk::width * Chunk::height);
                 std::srand(std::time(nullptr));
