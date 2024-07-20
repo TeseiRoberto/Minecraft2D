@@ -8,8 +8,7 @@
 #include <glad/glad.h>
 
 #include "logging.hpp"
-#include "block.hpp"
-#include "chunk.hpp"
+#include "world/gameWorld.hpp"
 #include "shader.hpp"
 #include "tileset.hpp"
 #include "camera.hpp"
@@ -33,13 +32,13 @@ namespace mc2d {
                 void    terminate();
                 void    resizeViewport(int newWidth, int newHeight);
 
-                void    renderWorld(Chunk& chunk, Camera& camera, bool optimized);
+                void    renderWorld(GameWorld& world, Camera& camera, bool optimized);
 
 
         private:
 
-                void            computeWorldVertices(const Chunk& chunk, const Camera& camera);
-                void            optimizedComputeWorldVertices(const Chunk& chunk, const Camera& camera);
+                void            computeWorldVertices(const GameWorld& world, const Camera& camera);
+                void            optimizedComputeWorldVertices(const GameWorld& world, const Camera& camera);
 
                 bool            m_isInit;
                 Tileset         m_gameTileset;

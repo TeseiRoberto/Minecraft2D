@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 0.0f, 1.0f, 18, 18)),
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 0.0f, 1.0f, 18, 18)), m_gameWorld(GameWorld()),
                 m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
@@ -111,11 +111,11 @@ namespace mc2d {
                 }
 
                 printHelp();
-                m_currChunk.generateRandom();
+                m_gameWorld.generateRandomWorld();
 
                 while(!glfwWindowShouldClose(m_window))
                 {
-                        m_renderer.renderWorld(m_currChunk, m_camera, m_optimizedDraw);
+                        m_renderer.renderWorld(m_gameWorld, m_camera, m_optimizedDraw);
 
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
@@ -127,8 +127,8 @@ namespace mc2d {
 
         // Callback invoked when the game window gets resized
         // @wnd: the window that has been resized
-        // @newWidth: the new window width
-        // @newHeight: the new window height
+        // @newWidth: the new width of the drawable area
+        // @newHeight: the new height of the drawable area
         void Game::onWindowResize(GLFWwindow* wnd, int newWidth, int newHeight)
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
@@ -160,12 +160,12 @@ namespace mc2d {
                         {
                                 // Debug code to generate random chunk when G is pressed
                                 case GLFW_KEY_G:
-                                        game->m_currChunk.generateRandom();
+                                        game->m_gameWorld.generateRandomWorld();
                                         break;
 
                                 // Debug code to generate flat chunk when F is pressed
                                 case GLFW_KEY_F:
-                                        game->m_currChunk.generateFlatChunk();
+                                        game->m_gameWorld.generateFlatWorld();
                                         break;
 
                                 // Change cursor block type to the previous one
@@ -188,10 +188,11 @@ namespace mc2d {
                                         isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                                         } break;
 
-                                // Switch between optimized and basic world rendering (TODO: Remove this when renderer testing will be over)
+                                // Switch between optimized and basic world rendering (TODO: Remove this when testing on renderer will be over)
                                 case GLFW_KEY_O:
                                         game->m_optimizedDraw = !game->m_optimizedDraw;
                                         logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
+                                        game->m_gameWorld.setHasChanged(true);          // Say that world has change to force the recomputation of vertices
                                         break;
 
                                 // Print controls list in console
@@ -253,15 +254,12 @@ namespace mc2d {
                         double mouseX, mouseY;
                         glfwGetCursorPos(wnd, &mouseX, &mouseY);
 
-                        double blockWidth = (double) game->m_settings.windowWidth / (double) Chunk::width;
-                        double blockHeight = (double) game->m_settings.windowHeight / (double) Chunk::height;
+                        // Convert window coordinates into world coordinates
+                        glm::vec2 blockCoord = game->m_camera.windowToWorldCoord((float) mouseX, (float) mouseY,
+                                        (float) game->m_settings.windowWidth, (float) game->m_settings.windowHeight);
 
-                        uint32_t blockX = (uint32_t) (mouseX / blockWidth);
-                        uint32_t blockY = (uint32_t) (mouseY / blockHeight);
-
-                        logInfo("Deleted block of type: %d", game->m_currChunk.blocks[blockY * Chunk::width + blockX]);
-                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = BlockType::AIR;
-                        game->m_currChunk.hasChanged = true;
+                        logInfo("Deleted block of type: %u", game->m_gameWorld.getBlock(blockCoord.x, blockCoord.y));
+                        game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, BlockType::AIR);
                 }
 
                 // On right mouse click add a block in the current chunk
@@ -270,14 +268,11 @@ namespace mc2d {
                         double mouseX, mouseY;
                         glfwGetCursorPos(wnd, &mouseX, &mouseY);
 
-                        double blockWidth = (double) game->m_settings.windowWidth / (double) Chunk::width;
-                        double blockHeight = (double) game->m_settings.windowHeight / (double) Chunk::height;
+                        // Convert window coordinates into world coordinates
+                        glm::vec2 blockCoord = game->m_camera.windowToWorldCoord((float) mouseX, (float) mouseY,
+                                        (float) game->m_settings.windowWidth, (float) game->m_settings.windowHeight);
 
-                        uint32_t blockX = (uint32_t) (mouseX / blockWidth);
-                        uint32_t blockY = (uint32_t) (mouseY / blockHeight);
-
-                        game->m_currChunk.blocks[blockY * Chunk::width + blockX] = game->m_cursorBlockType;
-                        game->m_currChunk.hasChanged = true;
+                        game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, game->m_cursorBlockType);
                 }
 
         }

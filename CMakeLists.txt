@@ -11,8 +11,8 @@ set (SRCS
 
         src/main.cpp
         src/game.cpp
-        src/block.cpp
-        src/chunk.cpp
+        src/world/block.cpp
+        src/world/gameWorld.cpp
 
         src/graphics/shader.cpp
         src/graphics/renderer.cpp

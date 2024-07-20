@@ -7,9 +7,10 @@
 #include <string>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/vec2.hpp>
 
 #include "logging.hpp"
-#include "chunk.hpp"
+#include "world/gameWorld.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/camera.hpp"
 
@@ -54,7 +55,7 @@ namespace mc2d {
                 Renderer        m_renderer;
 
                 Camera          m_camera;
-                Chunk           m_currChunk;            // TODO: Temporary just for debug purpouses
+                GameWorld       m_gameWorld;
         
                 bool            m_optimizedDraw;        // TODO: remove me when testing is over
                 BlockType       m_cursorBlockType;      // Which type of block will be placed in the world when right mouse is clicked
