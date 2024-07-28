@@ -4,6 +4,7 @@
 namespace mc2d {
 
         // Set default dimensions for a chunk
+        // TODO: Need a way to set a lower bound for those
         uint8_t Chunk::width = 18;
         uint8_t Chunk::height = 18;
 
@@ -36,16 +37,16 @@ namespace mc2d {
         // @newBlock: new block to place
         void GameWorld::setBlock(float x, float y, BlockType newBlock)
         {
-                if(y > (float) Chunk::height || y < 0.0f)
+                if(y > ((float) Chunk::height * BLOCK_HEIGHT) || y < 0.0f)
                         return;
 
                 for(auto& c : m_loadedChunks)
                 {
-                        if(x < c.getXPos() + Chunk::width)
+                        if(x > c.getPos().x && x < c.getPos().x + ((float)Chunk::width * BLOCK_WIDTH) )
                         {
-                                // Compute indexes in chunk array    
-                                uint32_t xIndex = (uint32_t) (x - c.getXPos());
-                                uint32_t yIndex = Chunk::height - 1 - (uint8_t) y;
+                                // Compute indexes relative to the blocks array of the chunk
+                                size_t xIndex = (size_t) std::floor(x - c.getPos().x);
+                                size_t yIndex = (size_t) std::floor(c.getPos().y - y);
                                 
                                 c.blocks[(yIndex * Chunk::width) + xIndex] = newBlock;
                                 m_hasChanged = true;
@@ -64,16 +65,16 @@ namespace mc2d {
         // @y: y coordinate of the block in world space
         BlockType GameWorld::getBlock(float x, float y) const
         {
-                if(y > Chunk::height || y < 0)
+                if(y > ((float) Chunk::height * BLOCK_HEIGHT) || y < 0)
                         return BlockType::AIR;
 
                 for(auto& c : m_loadedChunks)
                 {
-                        if(x < c.getXPos() + Chunk::width)
+                        if(x > c.getPos().x && x < c.getPos().x + ((float)Chunk::width * BLOCK_WIDTH) )
                         {
-                                // Compute indexes in chunk array    
-                                uint32_t xIndex = (uint32_t) (x - c.getXPos());
-                                uint32_t yIndex = Chunk::height - 1 - (uint8_t) y;
+                                // Compute indexes relative to the blocks array of the chunk
+                                size_t xIndex = (size_t) std::floor(x - c.getPos().x);
+                                size_t yIndex = (size_t) std::floor(c.getPos().y - y);
                                 
                                 return c.blocks[(yIndex * Chunk::width) + xIndex];
                         }
@@ -86,10 +87,6 @@ namespace mc2d {
         }
 
 
-        //void GameWorld::computeVisibleBlocksVertices(const Camera& camera, float* vertices, size_t maxVerticesNum, size_t* verticesNum);
-        //void GameWorld::optimizedComputeVisibleBlocksVertices(const Camera& camera, float* vertices, size_t maxVerticesNum, size_t* verticesNum);
-
-
         // Generates a completely random (nonsense) world
         // (TODO: Move world generation in another place)
         void GameWorld::generateRandomWorld()
@@ -99,6 +96,7 @@ namespace mc2d {
 
                 m_hasChanged = true;
         }
+
 
         // Generates a world that contains only flat chunks 
         // (TODO: Move world generation in another place)
@@ -154,6 +152,13 @@ namespace mc2d {
 
                 // and then we add stone blocks until the end of the chunk
                 std::memset(c.blocks.data() + offset, (uint8_t) BlockType::STONE, ((Chunk::height / 2) - 3)  * Chunk::width );
+        
+                // TODO: REMOVE ME: debug code that creates vertical lines that denotes the chunk limits
+                for(uint32_t i = 0; i < Chunk::height; ++i)
+                {
+                        c.blocks[i * Chunk::width] = BlockType::TNT;
+                        c.blocks[(i * Chunk::width) + Chunk::width - 1] = BlockType::TNT;
+                }
         }
 
 

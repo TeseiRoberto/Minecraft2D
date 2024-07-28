@@ -44,7 +44,8 @@ namespace mc2d {
                 Tileset         m_gameTileset;
 
                 // Data needed to render the blocks in the game world
-                uint32_t        m_worldVerticesNum;
+                size_t          m_worldVerticesBufferSize;
+                size_t          m_worldVerticesNum;
                 float*          m_worldVertices;
                 
                 uint32_t        m_worldVao;

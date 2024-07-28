@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 0.0f, 1.0f, 18, 18)), m_gameWorld(GameWorld()),
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 18.0f, 1.0f, 18, 18)), m_gameWorld(GameWorld()),
                 m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
@@ -247,7 +247,7 @@ namespace mc2d {
         void Game::onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int modifiers)
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
-
+                
                 // On left mouse click remove a block from the current chunk
                 if(btn == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
                 {
@@ -274,7 +274,6 @@ namespace mc2d {
 
                         game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, game->m_cursorBlockType);
                 }
-
         }
 
 

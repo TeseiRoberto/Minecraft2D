@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Renderer::Renderer() : m_isInit(false), m_worldVao(0), m_worldVbo(0)
+        Renderer::Renderer() : m_isInit(false), m_worldVao(0), m_worldVbo(0), m_worldVerticesBufferSize(Chunk::width * Chunk::height * 30)
         {}
 
 
@@ -69,7 +69,7 @@ namespace mc2d {
 
                 // Allocate a memory buffer to compute world data
                 m_worldVerticesNum = 0;
-                m_worldVertices = new float[ Chunk::width * Chunk::height * 30 ];
+                m_worldVertices = new float[m_worldVerticesBufferSize];
                 
                 m_isInit = true;
                 return 0;
@@ -131,18 +131,19 @@ namespace mc2d {
 
                 // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
                 // that are visible and we need to update data in the world vbo
-                if(world.hasChanged())
+                if(world.hasChanged() || camera.hasChanged())
                 {
                         if(optimized)
-                                optimizedComputeWorldVertices(world, camera);
+                                camera.optimizedComputeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
                         else
-                                computeWorldVertices(world, camera);
+                                camera.computeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
 
                         // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
                         //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
                         glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
 
                         world.setHasChanged(false);
+                        camera.setHasChanged(false);
                 }
 
                 glClear(GL_COLOR_BUFFER_BIT);
