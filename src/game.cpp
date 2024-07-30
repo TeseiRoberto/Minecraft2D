@@ -258,7 +258,6 @@ namespace mc2d {
                         glm::vec2 blockCoord = game->m_camera.windowToWorldCoord((float) mouseX, (float) mouseY,
                                         (float) game->m_settings.windowWidth, (float) game->m_settings.windowHeight);
 
-                        logInfo("Deleted block of type: %u", game->m_gameWorld.getBlock(blockCoord.x, blockCoord.y));
                         game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, BlockType::AIR);
                 }
 

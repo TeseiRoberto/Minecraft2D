@@ -42,6 +42,9 @@ namespace mc2d {
                 void                    computeVisibleBlocksVertices(const GameWorld& world, float* vertices, const size_t maxVerticesNum, size_t* verticesNum);
                 void                    optimizedComputeVisibleBlocksVertices(const GameWorld& world, float* vertices, const size_t maxVerticesNum, size_t* verticesNum);
 
+                bool                    generateBlockVertices(float* vertices, size_t& index, const size_t& maxVerticesNum,
+                                                const float& startX, const float& startY, const float& endX, const float& endY, BlockType block) const;
+
         private:
 
                 std::vector<const Chunk*> computeVisibleChunks(const GameWorld& world);
