@@ -9,25 +9,56 @@ namespace mc2d {
         uint8_t Chunk::height = 18;
 
 
-        // Allocates the specified amount of chunks and assignes ids to them
-        GameWorld::GameWorld(uint32_t cachedChunksNum) : m_hasChanged(true)
+        // GameWorld constructor, creates a single uninitialized chunk
+        GameWorld::GameWorld() : m_hasChanged(true)
         {
-                if(cachedChunksNum == 0)
-                        cachedChunksNum = 3;
+                initializeDummyWorld();
+        }
 
-                int numOfLeftChunks = (int) ( ((float) cachedChunksNum / 2.0f) );       // Number of chunks on the left of the root chunk
-                int id = -1 * numOfLeftChunks;
 
-                for(uint32_t i = 0; i < cachedChunksNum; i++)
+        // Creates a game world that contains the given chunks
+        GameWorld::GameWorld(std::vector<Chunk>&& chunks) : m_hasChanged(true)
+        {
+                if(chunks.size() != 0)
                 {
-                        Chunk c;
-                        c.id = id++;
-                        c.blocks.reserve(Chunk::width * Chunk::height);
-
-                        m_loadedChunks.push_back(std::move(c));
+                        size_t playerChunkIndex = chunks.size() / 2;
+                        m_loadedChunks = std::move(chunks);
+                        m_playerChunk = &(m_loadedChunks[playerChunkIndex]);
+                } else {
+                        logWarn("GameWorld::GameWorld() failed, given chunks list is empty, a dummy world has been created!");
+                        initializeDummyWorld();
                 }
+        }
 
-                m_playerChunk = &(m_loadedChunks[numOfLeftChunks]);                     // Player spawns in the root chunk
+
+        // Move assignement operator
+        GameWorld& GameWorld::operator = (GameWorld&& world)
+        {
+                m_loadedChunks = std::move(world.m_loadedChunks);
+                m_playerChunk = world.m_playerChunk;
+                m_hasChanged = true;
+
+                return *this;
+        }
+
+
+        // Attempts to initialize a game world from the data contained in the specified file
+        // @filepath: path to the file that contains the world data
+        // @returns: true if world is loaded correctly, false otherwise
+        bool GameWorld::loadFromFile(const std::string& filepath)
+        {
+                // TODO: Add implementation...
+                return false;
+        }
+
+
+        // Saves the world data to the given filepath
+        // @filepath: path to the file in which the world data will be saved
+        // @returns: true if world is saved correctly, false otherwise
+        bool GameWorld::saveToFile(const std::string& filepath)
+        {
+                // TODO: Add implementation...
+                return false;
         }
 
 
@@ -87,81 +118,48 @@ namespace mc2d {
         }
 
 
-        // Generates a completely random (nonsense) world
-        // (TODO: Move world generation in another place)
-        void GameWorld::generateRandomWorld()
+        // Adds the given chunk to the list of loaded chunks for this world
+        void GameWorld::appendChunk(Chunk&& newChunk)
         {
-                for(auto& chunk : m_loadedChunks)
-                        generateRandomChunk(chunk);
-
-                m_hasChanged = true;
-        }
-
-
-        // Generates a world that contains only flat chunks 
-        // (TODO: Move world generation in another place)
-        void GameWorld::generateFlatWorld()
-        {
-                for(auto& chunk : m_loadedChunks)
-                        generateFlatChunk(chunk);
-
-                m_hasChanged = true;
-        }
-
-
-        // Generates a completely random (nonsense) chunk
-        // (TODO: Move world generation in another place)
-        void GameWorld::generateRandomChunk(Chunk& c)
-        {
-                c.blocks.reserve(Chunk::width * Chunk::height);
-                std::srand(std::time(nullptr));
-
-                for(uint32_t y = 0; y < Chunk::height; y++)
+                for(const auto& c : m_loadedChunks)
                 {
-                        for(uint32_t x = 0; x < Chunk::width; x++)
+                        if(c.id == newChunk.id)
                         {
-                                if(std::rand() % 2 == 0)
-                                {
-                                        c.blocks[(y * Chunk::width) + x] = BlockType::AIR;
-                                } else {
-                                        c.blocks[(y * Chunk::width) + x] = BlockType::GRASS;
-                                }
+                                logWarn("GameWorld::appendChunk() failed, trying to append a chunk with an id that is alredy in use by another chunk!");
+                                return;
                         }
                 }
+
+                m_loadedChunks.push_back(std::move(newChunk));
+                m_hasChanged = true;
         }
 
 
-        // Generates a flat chunk that contains only grass, dirt and stone
-        // (TODO: Move world generation in another place???)
-        void GameWorld::generateFlatChunk(Chunk& c)
+        // Unloads the chunk with the given id from this world (if it is currently loaded)
+        void GameWorld::removeChunk(int id)
         {
-                c.blocks.reserve(Chunk::width * Chunk::height);
-                uint32_t offset = 0;
-
-                // Half of the chunk must be filled with air blocks
-                std::memset(c.blocks.data(), (uint8_t) BlockType::AIR, (Chunk::height / 2) * Chunk::width);
-                offset += ((Chunk::height / 2) * Chunk::width);
-
-                // then we add a layer of grass
-                std::memset(c.blocks.data() + offset, (uint8_t) BlockType::GRASS, Chunk::width);
-                offset += Chunk::width;
-
-                // then we add two layers of dirt
-                std::memset(c.blocks.data() + offset, (uint8_t) BlockType::DIRT, Chunk::width * 2);
-                offset += Chunk::width * 2;
-
-                // and then we add stone blocks until the end of the chunk
-                std::memset(c.blocks.data() + offset, (uint8_t) BlockType::STONE, ((Chunk::height / 2) - 3)  * Chunk::width );
-        
-                // TODO: REMOVE ME: debug code that creates vertical lines that denotes the chunk limits
-                for(uint32_t i = 0; i < Chunk::height; ++i)
+                for(auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); ++it)
                 {
-                        c.blocks[i * Chunk::width] = BlockType::TNT;
-                        c.blocks[(i * Chunk::width) + Chunk::width - 1] = BlockType::TNT;
+                        if(it->id == id)
+                        {
+                                m_loadedChunks.erase(it);
+                                return;
+                        }
                 }
+
+                m_hasChanged = true;
         }
 
 
+        // Initializes game world so that it contains only one flat chunk
+        void GameWorld::initializeDummyWorld()
+        {
+                Chunk c = WorldGenerator::generateFlatChunk();
+                c.id = 0;
+
+                m_loadedChunks.push_back(std::move(c));
+                m_playerChunk = &(m_loadedChunks[0]);
+        }
 
 }
 

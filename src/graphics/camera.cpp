@@ -118,7 +118,7 @@ namespace mc2d {
                 glm::vec2 currPos = initialPos;                         // X and y coordinates (in world space) of the top left vertex of the current block
                 
                 // Step 3] Iterate over the region of space that is visible from the camera (+ 1 block of safety)
-                for(size_t i = 0; i < m_height + 1; ++i, currPos.y -= BLOCK_HEIGHT)
+                for(size_t i = 0; i <= m_height; ++i, currPos.y -= BLOCK_HEIGHT)
                 {
                         auto currChunk = intersectedChunks.begin();
 
@@ -131,7 +131,7 @@ namespace mc2d {
                         currIndex.x = initialIndex.x;
                         currPos.x = initialPos.x;
 
-                        for(size_t j = 0; j < m_width + 1; ++j, currPos.x += BLOCK_WIDTH)
+                        for(size_t j = 0; j <= m_width; ++j, currPos.x += BLOCK_WIDTH)
                         {
                                 if(currIndex.x == Chunk::width)         // Handle passage to the adjacent chunk
                                 {
@@ -228,7 +228,7 @@ namespace mc2d {
                 glm::vec2 currPos = initialPos;                         // X and y coordinates (in world space) of the top left vertex of the current block
                 
                 // Step 3] Iterate over the region of space that is visible from the camera (+ 1 block of safety)
-                for(size_t i = 0; i < m_height + 1; ++i, currPos.y -= BLOCK_HEIGHT)
+                for(size_t i = 0; i <= m_height; ++i, currPos.y -= BLOCK_HEIGHT)
                 {
                         auto currChunk = intersectedChunks.begin();
 
@@ -363,7 +363,7 @@ namespace mc2d {
         std::vector<const Chunk*> Camera::computeVisibleChunks(const GameWorld& world)
         {
                 std::vector<const Chunk*> intersectedChunks;
-                for(auto& chunk : world.getChunks())
+                for(auto& chunk : world.getLoadedChunks())
                 {
                         if(doesRectsIntersect(m_pos.x, m_pos.y, (float) m_width, (float) m_height,
                                                 chunk.getPos().x, chunk.getPos().y, (float) Chunk::width, (float) Chunk::height))

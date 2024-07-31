@@ -111,7 +111,7 @@ namespace mc2d {
                 }
 
                 printHelp();
-                m_gameWorld.generateRandomWorld();
+                m_gameWorld = WorldGenerator::generateRandomWorld("hello world", 3);
 
                 while(!glfwWindowShouldClose(m_window))
                 {
@@ -158,14 +158,14 @@ namespace mc2d {
                 {
                         switch(key)
                         {
-                                // Debug code to generate random chunk when G is pressed
+                                // Debug code to generate a new random world when G is pressed
                                 case GLFW_KEY_G:
-                                        game->m_gameWorld.generateRandomWorld();
+                                        game->m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
                                         break;
 
                                 // Debug code to generate flat chunk when F is pressed
                                 case GLFW_KEY_F:
-                                        game->m_gameWorld.generateFlatWorld();
+                                        game->m_gameWorld = WorldGenerator::generateFlatWorld(3);
                                         break;
 
                                 // Change cursor block type to the previous one
@@ -202,22 +202,22 @@ namespace mc2d {
 
                                 // Camera movement
                                 case GLFW_KEY_LEFT:     
-                                        game->m_camera.updatePos(-1.0f, 0.0f);
+                                        game->m_camera.updatePos(-0.4f, 0.0f);
                                         logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
                                         break;
 
                                 case GLFW_KEY_RIGHT:
-                                        game->m_camera.updatePos(1.0f, 0.0f);
+                                        game->m_camera.updatePos(0.4f, 0.0f);
                                         logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
                                         break;
 
                                 case GLFW_KEY_UP:
-                                        game->m_camera.updatePos(0.0f, 1.0f);
+                                        game->m_camera.updatePos(0.0f, 0.4f);
                                         logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
                                         break;
 
                                 case GLFW_KEY_DOWN:
-                                        game->m_camera.updatePos(0.0f, -1.0f);
+                                        game->m_camera.updatePos(0.0f, -0.4f);
                                         logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
                                         break;
 

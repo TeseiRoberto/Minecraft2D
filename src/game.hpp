@@ -5,12 +5,14 @@
 #define GAME_H
 
 #include <string>
+#include <ctime>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
 #include "logging.hpp"
 #include "world/gameWorld.hpp"
+#include "world/worldGenerator.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/camera.hpp"
 

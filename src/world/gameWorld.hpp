@@ -14,15 +14,14 @@
 #define GAME_WORLD_H
 
 #include <vector>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <cmath>
+#include <string>
 #include <cstdint>
+#include <cmath>
 #include <glm/vec2.hpp>
 
 #include "logging.hpp"
 #include "block.hpp"
+#include "worldGenerator.hpp"
 
 
 namespace mc2d {
@@ -43,25 +42,31 @@ namespace mc2d {
 
         class GameWorld {
         public:
-                GameWorld(uint32_t cachedChunksNum = 3);
+                friend class WorldGenerator;
+
+                GameWorld();
+                GameWorld(std::vector<Chunk>&& chunks);
                 ~GameWorld() = default;
+
+                GameWorld&                              operator = (GameWorld&& world);
+
+                bool                                    loadFromFile(const std::string& filepath);
+                bool                                    saveToFile(const std::string& filepath);
 
                 void                                    setBlock(float x, float y, BlockType newBlock);
                 inline void                             setHasChanged(bool changed)                     { m_hasChanged = changed; }
 
                 BlockType                               getBlock(float x, float y) const;
                 inline bool                             hasChanged() const                              { return m_hasChanged; }
-                inline const Chunk&                     getPlayerChunk() const                          { return *m_playerChunk; }
-                inline const std::vector<Chunk>&        getChunks() const                               { return m_loadedChunks; }
 
-                // World generation methods (TODO: move somewhere else)
-                void                    generateRandomWorld();
-                void                    generateFlatWorld();
+                void                                    appendChunk(Chunk&& newChunk);
+                void                                    removeChunk(int id);
+                inline const std::vector<Chunk>&        getLoadedChunks() const                               { return m_loadedChunks; }
+                inline const Chunk&                     getPlayerChunk() const                          { return *m_playerChunk; }
+
 
         private:
-
-                void                    generateRandomChunk(Chunk& c);
-                void                    generateFlatChunk(Chunk& c);
+                void                    initializeDummyWorld();
 
                 bool                    m_hasChanged;           // Flag used to indicate that one or more blocks have been added/removed from the world
                 Chunk*                  m_playerChunk;          // Pointer to the chunk in which the player is (must never be nullptr)

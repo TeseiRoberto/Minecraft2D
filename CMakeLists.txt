@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Minecraft2D VERSION 1.0)
 
-#add_compile_options("-ggdb")
+add_compile_options("-ggdb")
 
 set (SRCS
         libs/glad/src/glad.c
@@ -13,6 +13,7 @@ set (SRCS
         src/game.cpp
         src/world/block.cpp
         src/world/gameWorld.cpp
+        src/world/worldGenerator.cpp
 
         src/graphics/shader.cpp
         src/graphics/renderer.cpp
