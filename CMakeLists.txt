@@ -12,6 +12,7 @@ set (SRCS
         src/main.cpp
         src/game.cpp
         src/world/block.cpp
+        src/world/biome.cpp
         src/world/gameWorld.cpp
         src/world/worldGenerator.cpp
 

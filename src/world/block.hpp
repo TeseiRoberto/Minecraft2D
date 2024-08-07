@@ -19,8 +19,10 @@
 
 namespace mc2d {
 
+
         constexpr float BLOCK_WIDTH = 1.0f;
         constexpr float BLOCK_HEIGHT = 1.0f;
+
 
         // Enumeration of all block types available in the game
         enum class BlockType : uint8_t {
@@ -111,8 +113,8 @@ namespace mc2d {
                 WATER,
                 LAVA,
 
-                AIR,            // Keep me here
-                BLOCK_TYPE_MAX
+                AIR,                    // Keep me here!!!
+                BLOCK_TYPE_MAX          // Keep me last!!!
         };
 
 

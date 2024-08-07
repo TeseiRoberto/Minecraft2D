@@ -2,6 +2,7 @@
 // Contains definition of the GameWorld class and the Chunk struct.
 //
 // The GameWorld class has responsibility of managing chunks (loading, unloading, ...).
+//
 // The Chunk struct is used to keep track of all the blocks that makes up a portion of the game world.
 //
 // The game world is structured as a sequence of chunks, the chunk in which the player spawns is the root chunk and
@@ -26,12 +27,14 @@
 
 namespace mc2d {
 
+        enum class BiomeType : uint32_t;
 
         struct Chunk {
-                static uint8_t          width;
-                static uint8_t          height;
+                static constexpr uint8_t width = 18;            // Width of the chunk measured in blocks, never set below 8!
+                static constexpr uint8_t height = 18;           // Height of the chunk measured in blocks, never set below 8!
 
                 int                     id;                     // Uniquely identifies the chunk in the game world (is negative for left chunks, positive for the right ones)
+                BiomeType               biome;
                 std::vector<BlockType>  blocks;                 // Keeps track of all the blocks in the chunk
 
 

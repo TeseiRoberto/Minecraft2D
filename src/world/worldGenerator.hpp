@@ -6,10 +6,11 @@
 #define WORLD_GENERATOR_H
 
 #include <string>
-#include <cstdlib>
 #include <cstring>
-#include <ctime>
+#include <random>
+#include <algorithm>
 
+#include "biome.hpp"
 #include "gameWorld.hpp"
 
 namespace mc2d {

@@ -111,7 +111,7 @@ namespace mc2d {
                 }
 
                 printHelp();
-                m_gameWorld = WorldGenerator::generateRandomWorld("hello world", 3);
+                m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
 
                 while(!glfwWindowShouldClose(m_window))
                 {
@@ -154,86 +154,110 @@ namespace mc2d {
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
 
-                if(action == GLFW_PRESS)
+                switch(key)
                 {
-                        switch(key)
-                        {
-                                // Debug code to generate a new random world when G is pressed
-                                case GLFW_KEY_G:
+                        // Debug code to generate a new random world when G is pressed
+                        case GLFW_KEY_G:
+                                if(action == GLFW_PRESS)
                                         game->m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
-                                        break;
+                                break;
 
-                                // Debug code to generate flat chunk when F is pressed
-                                case GLFW_KEY_F:
+                        // Debug code to generate flat chunk when F is pressed
+                        case GLFW_KEY_F:
+                                if(action == GLFW_PRESS)
                                         game->m_gameWorld = WorldGenerator::generateFlatWorld(3);
-                                        break;
+                                break;
 
-                                // Change cursor block type to the previous one
-                                case GLFW_KEY_1:
+                        // Change cursor block type to the previous one
+                        case GLFW_KEY_1:
+                                if(action == GLFW_PRESS)
                                         if(game->m_cursorBlockType != BlockType::GRASS)
                                                 game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType - 1);
-                                        break;
+                                break;
 
-                                // Change cursor block type to the next one
-                                case GLFW_KEY_2:
+                        // Change cursor block type to the next one
+                        case GLFW_KEY_2:
+                                if(action == GLFW_PRESS)
                                         if(game->m_cursorBlockType != BlockType::AIR)
                                                 game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType + 1);
-                                        break;
+                                break;
 
-                                // Switch between solid and wireframe rendering
-                                case GLFW_KEY_W: {
+                        // Switch between solid and wireframe rendering
+                        case GLFW_KEY_W:
+                                if(action == GLFW_PRESS)
+                                {
                                         static bool isWireframe = false;
 
                                         isWireframe = !isWireframe;
                                         isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                        } break;
+                                }
+                                break;
 
-                                // Switch between optimized and basic world rendering (TODO: Remove this when testing on renderer will be over)
-                                case GLFW_KEY_O:
+                        // Switch between optimized and basic world rendering (TODO: Remove this when testing on renderer will be over)
+                        case GLFW_KEY_O:
+                                if(action == GLFW_PRESS)
+                                {
                                         game->m_optimizedDraw = !game->m_optimizedDraw;
                                         logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
                                         game->m_gameWorld.setHasChanged(true);          // Say that world has change to force the recomputation of vertices
-                                        break;
+                                }
+                                break;
 
-                                // Print controls list in console
-                                case GLFW_KEY_H:
+                        // Print controls list in console
+                        case GLFW_KEY_H:
+                                if(action == GLFW_PRESS)
                                         game->printHelp();
-                                        break;
+                                break;
 
-                                // Camera movement
-                                case GLFW_KEY_LEFT:     
+                        // Print game details in console
+                        case GLFW_KEY_F1:
+                                if(action == GLFW_PRESS)
+                                {
+                                        logWarn("Game Info:");
+                                        logInfo("       - camera pos: (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
+                                        logInfo("       - camera size: (%f, %f)", game->m_camera.getWidth(), game->m_camera.getHeight());
+                                        logInfo("       - id of the current chunk: %d", game->m_gameWorld.getPlayerChunk().id);
+                                        logInfo("       - current chunk biome: %s\n", Biome::getBiomeProperties(game->m_gameWorld.getPlayerChunk().biome).name.c_str());
+                                }
+                                break;
+
+                        // Camera movement
+                        case GLFW_KEY_LEFT:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
                                         game->m_camera.updatePos(-0.4f, 0.0f);
-                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
-                                        break;
+                                break;
 
-                                case GLFW_KEY_RIGHT:
+                        case GLFW_KEY_RIGHT:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
                                         game->m_camera.updatePos(0.4f, 0.0f);
-                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
-                                        break;
+                                break;
 
-                                case GLFW_KEY_UP:
+                        case GLFW_KEY_UP:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
                                         game->m_camera.updatePos(0.0f, 0.4f);
-                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
-                                        break;
+                                break;
 
-                                case GLFW_KEY_DOWN:
+                        case GLFW_KEY_DOWN:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
                                         game->m_camera.updatePos(0.0f, -0.4f);
-                                        logWarn("Camera moved to (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
-                                        break;
+                                break;
 
-                                // Camera resize
-                                case GLFW_KEY_KP_ADD:
+                        // Camera resize
+                        case GLFW_KEY_KP_ADD:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                                {
                                         game->m_camera.setWidth(game->m_camera.getWidth() - 1);
                                         game->m_camera.setHeight(game->m_camera.getHeight() - 1);
-                                        logWarn("Camera resized to (%u, %u)", game->m_camera.getWidth(), game->m_camera.getHeight());
-                                        break;
+                                }
+                                break;
 
-                                case GLFW_KEY_KP_SUBTRACT:
+                        case GLFW_KEY_KP_SUBTRACT:
+                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
+                                {
                                         game->m_camera.setWidth(game->m_camera.getWidth() + 1);
                                         game->m_camera.setHeight(game->m_camera.getHeight() + 1);
-                                        logWarn("Camera resized to (%u, %u)", game->m_camera.getWidth(), game->m_camera.getHeight());
-                                        break;
-                        }
+                                }
+                                break;
                 }
 
         }
@@ -279,26 +303,27 @@ namespace mc2d {
         // Prints some info about the game controls in the console
         void Game::printHelp()
         {
-                logInfo("Available controls:");
+                logWarn("Available controls:");
                 logInfo("Chunk controls:");
-                logInfo("       press G to generate a random chunck");
-                logInfo("       press F to generate a flat world chunk");
+                logInfo("       - press G to generate a random chunck");
+                logInfo("       - press F to generate a flat world chunk");
 
                 logInfo("Rendering controls:");
-                logInfo("       press W to switch between solid and wireframe rendering");
-                logInfo("       press O to switch between optimized and basic world rendering");
+                logInfo("       - press W to switch between solid and wireframe rendering");
+                logInfo("       - press O to switch between optimized and basic world rendering");
                 
                 logInfo("Block controls:");
-                logInfo("       left mouse click to delete a block");
-                logInfo("       right mouse click to place a block");
-                logInfo("       press 1 and 2 to change the block type that will be placed");
+                logInfo("       - left mouse click to delete a block");
+                logInfo("       - right mouse click to place a block");
+                logInfo("       - press 1 and 2 to change the block type that will be placed");
 
                 logInfo("Camera controls:");
-                logInfo("       use arrows to move the camera around");
-                logInfo("       use keypad + and keypad - to change camera size");
+                logInfo("       - use arrows to move the camera around");
+                logInfo("       - use keypad + and keypad - to change camera size");
 
                 logInfo("Other controls:");
-                logInfo("       press H to show this controls list\n");
+                logInfo("       - press H to show this controls list");
+                logInfo("       - press F1 to show some game info\n");
         }
 
 }

@@ -3,11 +3,6 @@
 
 namespace mc2d {
 
-        // Set default dimensions for a chunk
-        // TODO: Need a way to set a lower bound for those
-        uint8_t Chunk::width = 18;
-        uint8_t Chunk::height = 18;
-
 
         // GameWorld constructor, creates a single uninitialized chunk
         GameWorld::GameWorld() : m_hasChanged(true)
