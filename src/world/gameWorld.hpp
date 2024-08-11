@@ -22,12 +22,11 @@
 
 #include "logging.hpp"
 #include "block.hpp"
-#include "worldGenerator.hpp"
-
 
 namespace mc2d {
 
         enum class BiomeType : uint32_t;
+        class WorldGenerator;
 
         struct Chunk {
                 static constexpr uint8_t width = 18;            // Width of the chunk measured in blocks, never set below 8!

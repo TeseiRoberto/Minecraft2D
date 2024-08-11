@@ -68,81 +68,34 @@ namespace mc2d {
                 return GameWorld(std::move(chunks));
         }
         
-
         // Generates a chunk with a random terrain
         // @seed: used to initialize the (pseudo) random number generator
-        // (Note: terrain generation uses a linear interpolation of terrain control points, those points are distributed 
-        // equally on the x axis and pseudo randomly on the y axis)
-        Chunk WorldGenerator::generateRandomChunk(unsigned seed)
+        Chunk WorldGenerator::generateRandomChunk(unsigned seed, BiomeType biome)
         {
                 static_assert(Chunk::width >= 8 && Chunk::height >= 8, "WorldGenerator requires chunk dimensions equal or greater than 8x8 to work properly");
                 
                 std::mt19937 gen(seed);
 
-                // Create a new chunk with a random biome type
-                Chunk newChunk {};
-                newChunk.blocks.resize(Chunk::width * Chunk::height, BlockType::AIR);
-                newChunk.biome = static_cast<BiomeType>( gen() % ((uint32_t) BiomeType::BIOME_TYPE_MAX - 2) );
+                // If biome has not been specified then choose a random one
+                if(biome == BiomeType::BIOME_TYPE_MAX)
+                        biome = static_cast<BiomeType>( gen() % ((uint32_t) BiomeType::BIOME_TYPE_MAX - 2) );
 
-                // Get biome properties using the biome look up table
-                const BiomeProperties& biomeProps = Biome::getBiomeProperties(newChunk.biome);
+                // Retrieve biome properties
+                const BiomeProperties& biomeProps = Biome::getBiomeProperties(biome);
 
-                // Setup distributions needed for terrain generation
-                std::uniform_int_distribution heightDistrib(biomeProps.minTerrainHeight, biomeProps.maxTerrainHeight);
-                std::uniform_real_distribution slopeDistrib(biomeProps.minTerrainSlope, biomeProps.maxTerrainSlope);
+                // Generate random terrain for the chunk
+                Terrain t = generateRandomTerrain(seed, Chunk::width, Chunk::height, biomeProps);
 
-                // Generate control points for the terrain
-                float lastHeight = static_cast<float>(heightDistrib(gen));
+                // Add stuff to the terrain
+                //addWaterToTerrain(t, biomeProps);
+                //addiTreesToTerrain(t, biomeProps);
+                //addMineralsToTerrain(t, biomeProps);
 
-                size_t terrainControlPointsNum = 2;
-                if(biomeProps.terrainControlPointsNum > 2)
-                        terrainControlPointsNum = biomeProps.terrainControlPointsNum;
-
-                float controlPointsSpacing = (float) Chunk::width / (float) (terrainControlPointsNum - 1);
-                glm::vec2 controlPoints[biomeProps.terrainControlPointsNum];
-
-                for(size_t i = 0; i < terrainControlPointsNum; ++i)
-                {
-                        lastHeight = lastHeight + slopeDistrib(gen);
-
-                        controlPoints[i].x = controlPointsSpacing * i;
-                        controlPoints[i].y = lastHeight;
-                }
-
-                // Generate terrain (using a linear interpolation of the terrain control points generated previously)
-                glm::vec2* controlPointA = controlPoints;
-                glm::vec2* controlPointB = controlPoints + 1;
-
-                for(size_t x = 0; x < Chunk::width; ++x)
-                {
-                        // Handle passage between the different control points
-                        if((float) x > controlPointA->x && controlPointB + 1 < controlPoints + terrainControlPointsNum)
-                        {
-                                controlPointA = controlPointB;
-                                ++controlPointB;
-                        }
-
-                        float deltaXa = (float) x - controlPointA->x;
-                        float deltaXb = (float) x - controlPointB->x;
-                        float deltaX = controlPointA->x - controlPointB->x;
-
-                        float height = (deltaXb / deltaX) * controlPointA->y;
-                        height -= (deltaXa / deltaX) * controlPointB->y;
-
-                        // Compute y index relative to the chunk's blocks array
-                        size_t yIndex = std::clamp(static_cast<size_t>(height), 0Lu, Chunk::height - 1Lu);
-
-                        newChunk.blocks[(yIndex * Chunk::width) + x] = biomeProps.firstLayerBlockType;
-
-                        for(uint8_t y = yIndex + 1; y < yIndex + 3 && y < Chunk::height; ++y)
-                                newChunk.blocks[(y * Chunk::width) + x] = biomeProps.secondLayerBlockType;
-
-                        for(uint8_t y = yIndex + 3; y < Chunk::height; ++y)
-                                newChunk.blocks[(y * Chunk::width) + x] = biomeProps.thirdLayerBlockType;
-                }
-
-                // Add final bedrock layer
-                std::memset(&(newChunk.blocks[ (Chunk::height - 1) * Chunk::width ]), (uint8_t) BlockType::BEDROCK, Chunk::width * sizeof(BlockType));
+                // Create new chunk
+                Chunk newChunk = {};
+                newChunk.biome = biome;
+                newChunk.blocks = std::move(t.blocks);
+                
                 return newChunk;
         }
 
@@ -155,14 +108,10 @@ namespace mc2d {
                 Chunk newChunk {};
                 newChunk.biome = BiomeType::SUPER_FLAT;
 
-                newChunk.blocks.reserve(Chunk::width * Chunk::height);
-                uint32_t offset = 0;
+                newChunk.blocks.resize(Chunk::width * Chunk::height, BlockType::AIR);
+                uint32_t offset = ((Chunk::height / 2) * Chunk::width) * sizeof(BlockType);
 
-                // Half of the chunk must be filled with air blocks
-                std::memset(newChunk.blocks.data(), (uint8_t) BlockType::AIR, (Chunk::height / 2) * Chunk::width * sizeof(BlockType));
-                offset += ((Chunk::height / 2) * Chunk::width) * sizeof(BlockType);
-
-                // then we add a layer of grass
+                // First we add a layer of grass
                 std::memset(newChunk.blocks.data() + offset, (uint8_t) BlockType::GRASS, Chunk::width * sizeof(BlockType));
                 offset += Chunk::width * sizeof(BlockType);;
 
@@ -186,5 +135,101 @@ namespace mc2d {
                 return newChunk;
         }
 
+
+        // Generates a random terrain using the given properties
+        // @seed: used to initialize the (pseudo) random number generator
+        // @width: the width of terrain
+        // @height: the height of terrain
+        // @biome: specify the properties and the constraints that the generated terrain must have
+        // @returns: the generated terrain
+        // (Note: terrain generation uses a linear interpolation of terrain control points, those points are distributed 
+        // equally on the x axis and pseudo randomly on the y axis(even if y is bound in range [minTerrainHeight, maxTerrainHeight]))
+        WorldGenerator::Terrain WorldGenerator::generateRandomTerrain(unsigned seed, size_t width, size_t height, const BiomeProperties& biome)
+        {
+                Terrain t = {};
+                t.width = width;
+                t.height = height;
+                t.terrainHeightValues.resize(width, 0);
+                t.blocks.resize(width * height, BlockType::AIR);
+
+                // Setup RNG and distributions needed for terrain generation
+                std::mt19937 gen(seed);
+
+                std::uniform_int_distribution heightDistrib(biome.minTerrainHeight, biome.maxTerrainHeight);
+                std::uniform_real_distribution slopeDistrib(biome.minTerrainSlope, biome.maxTerrainSlope);
+
+                float lastHeight = static_cast<float>(heightDistrib(gen));
+
+                // Generate control points for the terrain
+                size_t controlPointsNum = (biome.terrainControlPointsNum > 2 ? biome.terrainControlPointsNum : 2);
+                float controlPointsSpacing = (float) t.width / (float) (controlPointsNum - 1);
+                glm::vec2 controlPoints[controlPointsNum];
+
+                for(size_t i = 0; i < controlPointsNum; ++i)
+                {
+                        float currSlope = slopeDistrib(gen) * BLOCK_HEIGHT;
+                        lastHeight = std::clamp(lastHeight + currSlope, (float) biome.minTerrainHeight, (float) biome.maxTerrainHeight);
+
+                        controlPoints[i].x = (float) i * controlPointsSpacing;
+                        controlPoints[i].y = lastHeight;
+                }
+
+                // Generate terrain (using a linear interpolation of the terrain control points generated previously)
+                glm::vec2* controlPointA = controlPoints;
+                glm::vec2* controlPointB = controlPoints + 1;
+
+                for(size_t x = 0; x < t.width; ++x)
+                {
+                        // Handle passage between the different control points
+                        if((float) x > controlPointA->x && controlPointB + 1 < controlPoints + controlPointsNum)
+                        {
+                                controlPointA = controlPointB;
+                                ++controlPointB;
+                        }
+
+                        float deltaXa = (float) x - controlPointA->x;
+                        float deltaXb = controlPointB->x - (float) x;
+                        float deltaX = controlPointB->x - controlPointA->x;
+
+                        float height = (deltaXa * controlPointB->y) + (deltaXb * controlPointA->y);
+                        height /= deltaX;
+
+                        // Compute y index relative to the terrain's blocks vector
+                        size_t yIndex = t.height - 1 - (size_t) std::clamp(height, 0.0f, (float) (t.height - 1));
+                        t.terrainHeightValues[x] = yIndex;
+
+                        t.blocks[(yIndex * t.width) + x] = biome.firstLayerBlockType;
+
+                        for(size_t y = yIndex + 1; y < yIndex + 3 && y < t.height; ++y)
+                                t.blocks[(y * t.width) + x] = biome.secondLayerBlockType;
+
+                        for(size_t y = yIndex + 3; y < t.height; ++y)
+                                t.blocks[(y * t.width) + x] = biome.thirdLayerBlockType;
+                }
+
+                // Add final bedrock layer
+                std::memset(&(t.blocks[ (t.height - 1) * t.width ]), (uint8_t) BlockType::BEDROCK, t.width * sizeof(BlockType));
+
+                return t;
+        }
+
+
+
+        void WorldGenerator::addTreesToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        {
+                // TODO: Add implementation...
+        }
+
+
+        void WorldGenerator::addWaterToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        {
+                // TODO: Add implementation...
+        }
+
+
+        void WorldGenerator::addMineralsToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        {
+                // TODO: Add implementation...
+        }
 }
 

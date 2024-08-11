@@ -10,14 +10,12 @@
 #include <random>
 #include <algorithm>
 
-#include "biome.hpp"
 #include "gameWorld.hpp"
+#include "biome.hpp"
 
 namespace mc2d {
 
-        class GameWorld;
         struct Chunk;
-
 
         class WorldGenerator {
         public:
@@ -27,8 +25,22 @@ namespace mc2d {
                 static GameWorld        generateRandomWorld(const unsigned seed, uint32_t initialChunksNum);
                 static GameWorld        generateFlatWorld(uint32_t initialChunksNum);
 
-                static Chunk            generateRandomChunk(const unsigned seed);
+                static Chunk            generateRandomChunk(const unsigned seed, BiomeType biome = BiomeType::BIOME_TYPE_MAX);
                 static Chunk            generateFlatChunk();
+
+        private:
+
+                struct Terrain {
+                        size_t                  width;                  // Terrain width (measured in blocks)
+                        size_t                  height;                 // Terrain height (measured in blocks)
+                        std::vector<size_t>     terrainHeightValues;    // Height values (relative to the blocks vector) for most superficial terrain blocks
+                        std::vector<BlockType>  blocks;                 // Blocks that makes up the terrain
+                };
+
+                static Terrain          generateRandomTerrain(unsigned seed, size_t width, size_t height, const BiomeProperties& biome);
+                static void             addTreesToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome);
+                static void             addWaterToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome);
+                static void             addMineralsToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome);
         };
 
 }

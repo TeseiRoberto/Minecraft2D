@@ -1,5 +1,6 @@
 
 #include "gameWorld.hpp"
+#include "worldGenerator.hpp"
 
 namespace mc2d {
 

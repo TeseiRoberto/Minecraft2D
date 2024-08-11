@@ -3,7 +3,7 @@
 
 namespace mc2d {
 
-        // Used to compute the number of terrain control points expessed as a percentual value relative to the chunk width
+        // Macro use do to compute the number of terrain control points (given a percentage value relative to the Chunk::width)
         #define COMPUTE_CONTROL_POINTS(percentage)  static_cast<uint8_t>( std::floor((Chunk::width * percentage) / 100.0f) ) 
 
 
@@ -15,8 +15,8 @@ namespace mc2d {
                 {       
                         "plain",                                                // Human redable biome name
                         COMPUTE_CONTROL_POINTS(30),                             // Number of terrain control points
-                        (Chunk::height / 2) - 1, (Chunk::height / 2) + 1,       // Min and max terrain heights
-                        -0.7f, 0.7f,                                            // Min and max terrain slope
+                        (Chunk::height / 2) - 1, (Chunk::height / 2) + 1,       // Min and max terrain heights (measured in blocks)
+                        -0.7f, 0.7f,                                            // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS, BlockType::DIRT, BlockType::STONE,    // Type of blocks for the terrain layers
                         0.2f,                                                   // Tree spawn probability
                         0.2f                                                    // Water spawn probability
@@ -26,8 +26,8 @@ namespace mc2d {
                 {       
                         "forest",                                               // Human redable biome name
                         COMPUTE_CONTROL_POINTS(40),                             // Number of terrain control points
-                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,       // Min and max terrain heights
-                        -1.0f, 1.0f,                                            // Min and max terrain slope
+                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,       // Min and max terrain heights (measured in blocks)
+                        -1.0f, 1.0f,                                            // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS, BlockType::DIRT, BlockType::STONE,    // Type of blocks for the terrain layers
                         0.8f,                                                   // Tree spawn probability
                         0.3f                                                    // Water spawn probability
@@ -36,9 +36,9 @@ namespace mc2d {
                 // MOUNTAIN biome properties
                 {       
                         "mountain",                                             // Human redable biome name
-                        COMPUTE_CONTROL_POINTS(60),                             // Number of terrain control points
-                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,       // Min and max terrain heights
-                        -3.0f, 3.0f,                                            // Min and max terrain slope
+                        COMPUTE_CONTROL_POINTS(80),                             // Number of terrain control points
+                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 4,           // Min and max terrain heights (measured in blocks)
+                        -3.0f, 3.0f,                                            // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS, BlockType::DIRT, BlockType::STONE,    // Type of blocks for the terrain layers
                         0.1f,                                                   // Tree spawn probability
                         0.0f                                                    // Water spawn probability
@@ -48,8 +48,8 @@ namespace mc2d {
                 {       
                         "snowy plain",                                                  // Human redable biome name
                         COMPUTE_CONTROL_POINTS(30),                                     // Number of terrain control points
-                        (Chunk::height / 2) - 1, (Chunk::height / 2) + 1,               // Min and max terrain heights
-                        -0.7f, 0.7f,                                                    // Min and max terrain slope
+                        (Chunk::height / 2) - 1, (Chunk::height / 2) + 1,               // Min and max terrain heights (measured in blocks)
+                        -0.7f, 0.7f,                                                    // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS_SNOW, BlockType::DIRT, BlockType::STONE,       // Type of blocks for the terrain layers
                         0.2f,                                                           // Tree spawn probability
                         0.2f                                                            // Water spawn probability
@@ -59,8 +59,8 @@ namespace mc2d {
                 {       
                         "snowy forest",                                                 // Human redable biome name
                         COMPUTE_CONTROL_POINTS(40),                                     // Number of terrain control points
-                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,               // Min and max terrain heights
-                        -1.0f, 1.0f,                                                    // Min and max terrain slope
+                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,               // Min and max terrain heights (measured in blocks)
+                        -1.0f, 1.0f,                                                    // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS_SNOW, BlockType::DIRT, BlockType::STONE,       // Type of blocks for the terrain layers
                         0.8f,                                                           // Tree spawn probability
                         0.3f                                                            // Water spawn probability
@@ -69,9 +69,9 @@ namespace mc2d {
                 // SNOWY_MOUNTAIN biome properties
                 {       
                         "snowy mountain",                                               // Human redable biome name
-                        COMPUTE_CONTROL_POINTS(60),                                     // Number of terrain control points
-                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 2,               // Min and max terrain heights
-                        -3.0f, 3.0f,                                                    // Min and max terrain slope
+                        COMPUTE_CONTROL_POINTS(80),                                     // Number of terrain control points
+                        (Chunk::height / 2) - 2, (Chunk::height / 2) + 4,               // Min and max terrain heights (measured in blocks)
+                        -3.0f, 3.0f,                                                    // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS_SNOW, BlockType::DIRT, BlockType::STONE,       // Type of blocks for the terrain layers
                         0.1f,                                                           // Tree spawn probability
                         0.0f                                                            // Water spawn probability
@@ -81,8 +81,8 @@ namespace mc2d {
                 {       
                         "super flat",                                           // Human redable biome name
                         2,                                                      // Number of terrain control points
-                        (Chunk::height / 2), (Chunk::height / 2),               // Min and max terrain heights
-                        0.0f, 0.0f,                                             // Min and max terrain slope
+                        (Chunk::height / 2), (Chunk::height / 2),               // Min and max terrain heights (measured in blocks)
+                        0.0f, 0.0f,                                             // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS, BlockType::DIRT, BlockType::STONE,    // Type of blocks for the terrain layers
                         0.5f,                                                   // Tree spawn probability
                         0.0f                                                    // Water spawn probability
@@ -92,8 +92,8 @@ namespace mc2d {
                 {       
                         "super flat",                                           // Human redable biome name
                         2,                                                      // Number of terrain control points
-                        (Chunk::height / 2), (Chunk::height / 2),               // Min and max terrain heights
-                        0.0f, 0.0f,                                             // Min and max terrain slope
+                        (Chunk::height / 2), (Chunk::height / 2),               // Min and max terrain heights (measured in blocks)
+                        0.0f, 0.0f,                                             // Min and max terrain slope (measured in blocks)
                         BlockType::GRASS, BlockType::DIRT, BlockType::STONE,    // Type of blocks for the terrain layers
                         0.5f,                                                   // Tree spawn probability
                         0.0f                                                    // Water spawn probability
