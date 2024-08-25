@@ -67,6 +67,7 @@ namespace mc2d {
 
                 return GameWorld(std::move(chunks));
         }
+
         
         // Generates a chunk with a random terrain
         // @seed: used to initialize the (pseudo) random number generator

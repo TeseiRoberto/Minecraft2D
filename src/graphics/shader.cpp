@@ -19,8 +19,8 @@ namespace mc2d {
         // @returns: zero on success, non zero otherwise
         int Shader::init(const std::string& vrtxShaderFilename, const std::string& fragShaderFilename)
         {
-                // If a shader program has alreaby been created then we destroy that first
-                if(isValid())
+                // If a shader program has already been created then we destroy that first
+                if(isInit())
                 {
                         glDeleteProgram(m_programId);
                         m_programId = 0;
@@ -50,7 +50,7 @@ namespace mc2d {
         // Destroyes the shader program
         void Shader::terminate()
         {
-                if(!isValid())
+                if(!isInit())
                         return;
 
                 glDeleteProgram(m_programId);
@@ -61,7 +61,7 @@ namespace mc2d {
         // Set this shader program as the one to be used for rendering
         void Shader::activate() const
         {
-                if(!isValid())
+                if(!isInit())
                 {
                         logError("Shader::activate() failed, trying to use an invalid shader program!");
                         return;
@@ -76,7 +76,7 @@ namespace mc2d {
         // @returns: the id (location) of the uniform associated to the given name, -1 on error
         int Shader::getUniformId(const std::string& uniformName) const
         {
-                if(!isValid())
+                if(!isInit())
                 {
                         logError("Shader::getUniformId() failed, shader has not been initialized!");
                         return -1;
@@ -97,7 +97,7 @@ namespace mc2d {
         // @value: value used to set the uniform
         void Shader::setUniform(int uniformId, const glm::mat4x4& value) const
         {
-                if(!isValid())
+                if(!isInit())
                 {
                         logWarn("Shader::setUniform() failed, shader has not been initialized!");
                         return;

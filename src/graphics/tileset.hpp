@@ -30,7 +30,7 @@ namespace mc2d {
                 bool                    load(const std::string& filepath, uint32_t rows, uint32_t cols, uint32_t tileWidth, uint32_t tileHeight);
                 void                    unload();
 
-                inline bool             isValid() const         { return m_textureId != 0; }
+                inline bool             isInit() const          { return m_textureId != 0; }
                 void                    activate() const;
                 void                    deactivate() const;
 

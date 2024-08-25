@@ -30,7 +30,7 @@ namespace mc2d {
                 int             init(const std::string& vrtxShaderFilename, const std::string& fragShaderFilename);
                 void            terminate();
 
-                inline bool     isValid() const         { return m_programId != 0; }
+                inline bool     isInit() const          { return m_programId != 0; }
                 void            activate() const;
                 inline void     deactivate() const      { glUseProgram(0); }
 

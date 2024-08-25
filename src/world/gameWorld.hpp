@@ -63,7 +63,7 @@ namespace mc2d {
 
                 void                                    appendChunk(Chunk&& newChunk);
                 void                                    removeChunk(int id);
-                inline const std::vector<Chunk>&        getLoadedChunks() const                               { return m_loadedChunks; }
+                inline const std::vector<Chunk>&        getLoadedChunks() const                         { return m_loadedChunks; }
                 inline const Chunk&                     getPlayerChunk() const                          { return *m_playerChunk; }
 
 

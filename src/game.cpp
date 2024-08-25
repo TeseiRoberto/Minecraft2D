@@ -115,6 +115,7 @@ namespace mc2d {
 
                 while(!glfwWindowShouldClose(m_window))
                 {
+                        m_renderer.clearScreen();
                         m_renderer.renderWorld(m_gameWorld, m_camera, m_optimizedDraw);
 
                         glfwPollEvents();

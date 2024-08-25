@@ -11,6 +11,7 @@
 #include "world/gameWorld.hpp"
 #include "shader.hpp"
 #include "tileset.hpp"
+#include "sprite.hpp"
 #include "camera.hpp"
 
 namespace mc2d {
@@ -32,18 +33,26 @@ namespace mc2d {
                 void    terminate();
                 void    resizeViewport(int newWidth, int newHeight);
 
+                void    clearScreen();
+
                 void    renderWorld(GameWorld& world, Camera& camera, bool optimized);
 
+                void    renderSprite(const Sprite& sprite, const glm::vec3& pos, const glm::vec3& scale, const float rotation, const Camera& camera);
+                void    renderSprite(const Sprite& sprite, const glm::mat4& modelMat, const glm::mat4& viewMat, const glm::mat4& projectionMat);
 
         private:
 
-                void            computeWorldVertices(const GameWorld& world, const Camera& camera);
-                void            optimizedComputeWorldVertices(const GameWorld& world, const Camera& camera);
+                int     initWorldRenderingData();
+                void    terminateWorldRenderingData();
+
+                int     initSpriteRenderingData();
+                void    terminateSpriteRenderingData();
+
 
                 bool            m_isInit;
-                Tileset         m_gameTileset;
 
                 // Data needed to render the blocks in the game world
+                Tileset         m_blocksTileset;
                 size_t          m_worldVerticesBufferSize;
                 size_t          m_worldVerticesNum;
                 float*          m_worldVertices;
@@ -51,6 +60,12 @@ namespace mc2d {
                 uint32_t        m_worldVao;
                 uint32_t        m_worldVbo;
                 Shader          m_worldShader;
+
+                // Data needed to render sprites
+                size_t          m_spriteVerticesNum;
+                uint32_t        m_spriteVao;
+                uint32_t        m_spriteVbo;
+                Shader          m_spriteShader;
         };
 }
 

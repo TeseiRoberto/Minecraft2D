@@ -4,7 +4,9 @@
 namespace mc2d {
 
 
-        Renderer::Renderer() : m_isInit(false), m_worldVao(0), m_worldVbo(0), m_worldVerticesBufferSize(Chunk::width * Chunk::height * 30)
+        Renderer::Renderer() : m_isInit(false),
+                m_worldVao(0), m_worldVbo(0), m_worldVerticesBufferSize(Chunk::width * Chunk::height * 30), m_worldVertices(nullptr),
+                m_spriteVerticesNum(0), m_spriteVao(0), m_spriteVbo(0)
         {}
 
 
@@ -25,34 +27,171 @@ namespace mc2d {
                         return 1;
                 }
 
-                // Set clear color
-                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                glClearColor(0.0f, 0.0f, 0.0f, 1.0f);           // Set clear color used to clear screen
 
-                // Load the tileset that contains all the game's sprites
-                if(!m_gameTileset.load("../resources/myTileset.png", 5, 16, 16, 16))
+                if(initWorldRenderingData() != 0)               // Initialize resources needed to render the blocks of the game world
                 {
-                        logError("Renderer::init() failed, game tileset creation failed!");
+                        logError("Render::init() failed, initWorldRenderingData() failed!");
+                        return 1;
+                }
+               
+                if(initSpriteRenderingData() != 0)              // Initialize resources needed to render sprites
+                {
+                        terminateWorldRenderingData();
+                        logError("Render::init() failed, initSpriteRenderingData() failed!");
+                        return 1;
+                }
+
+                m_isInit = true;
+                return 0;
+        }
+
+
+        // Terminates all the resources initialized in the init method
+        void Renderer::terminate()
+        {
+                if(!m_isInit)
+                        return;
+
+                terminateWorldRenderingData();
+                terminateSpriteRenderingData();
+
+                m_isInit = false;
+        }
+
+
+        // Resizes the viewport
+        // @newWidth: the new width of the viewport
+        // @newHeight: the new height of the viewport
+        void Renderer::resizeViewport(int newWidth, int newHeight)
+        {
+                if(!m_isInit)
+                        return;
+
+                glViewport(0, 0, newWidth, newHeight);
+        }
+
+
+        // Clears the screen with black color
+        void Renderer::clearScreen()
+        {
+                if(!m_isInit)
+                        return;
+
+                glClear(GL_COLOR_BUFFER_BIT);
+        }
+
+
+        // Renders all the blocks in the given game world that are visible from the given camera
+        void Renderer::renderWorld(GameWorld& world, Camera& camera, bool optimized)
+        {
+                if(!m_isInit)
+                {
+                        logWarn("Renderer::renderWorld() failed, renderer has not been initialized correctly!");
+                        return;
+                }
+
+                m_worldShader.activate();                                               // Activate shader to render the world
+                m_blocksTileset.activate();                                             // Bind tileset's texture
+                
+                // Compute view-projection matrix and set uniform
+                glm::mat4 vpMatrix = glm::ortho(0.0f, (float) camera.getWidth(), 0.0f, (float) camera.getHeight()) * camera.getViewMatrix();
+                int viewMatUniform = m_worldShader.getUniformId("transformMatrix");
+                m_worldShader.setUniform(viewMatUniform, vpMatrix);
+
+                glBindVertexArray(m_worldVao);                                          // Bind world vao
+
+                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
+                // that are visible and we need to update data in the world vbo
+                if(world.hasChanged() || camera.hasChanged())
+                {
+                        if(optimized)
+                                camera.optimizedComputeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
+                        else
+                                camera.computeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
+
+                        glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
+                        glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
+
+                        world.setHasChanged(false);
+                        camera.setHasChanged(false);
+                }
+
+                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
+        }
+
+
+        // Renders the given sprite
+        // @sprite: the 2D image to be rendered
+        // @pos: defines the position (in world space coordinates) of the top left corner of the sprite
+        // @scale: defines the scale factor of the sprites relative to the x, y and z axis
+        // @rotation: the angle of rotation (in degrees) of the sprite relative to the x axis
+        // @camera: used to determine the view matrix
+        void Renderer::renderSprite(const Sprite& sprite, const glm::vec3& pos, const glm::vec3& scale, const float rotation, const Camera& camera)
+        {
+                // Compute model matrix for the sprite
+                glm::mat4 id(1.0f);
+                glm::mat4 modelMat = glm::translate(id, pos);
+                modelMat *= glm::rotate(id, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+                modelMat *= glm::scale(id, scale);
+
+                return renderSprite( sprite, modelMat, camera.getViewMatrix(), glm::ortho(0.0f, (float) camera.getWidth(), 0.0f, (float) camera.getHeight()) );
+        }
+
+
+        // Renders the given sprite
+        // @sprite: the 2D image to be rendered
+        // @modelMatrix: model matrix used to transform the sprite
+        // @viewMatrix: view matrix
+        // @projectionMatrix: projection matrix used to project the transformed sprite onto the screen
+        void Renderer::renderSprite(const Sprite& sprite, const glm::mat4& modelMatrix, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix)
+        {
+                if(!m_isInit)
+                {
+                        logWarn("Renderer::renderSprite() failed, renderer has not been initialized correctly!");
+                        return;
+                }
+
+                m_spriteShader.activate();
+                sprite.activate();
+
+                // Compute view-projection matrix and set uniform
+                glm::mat4 mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
+                int mvpMatUniform = m_spriteShader.getUniformId("mvpMatrix");
+                m_spriteShader.setUniform(mvpMatUniform, mvpMatrix);
+
+                glBindVertexArray(m_spriteVao);                         // Bind vao to render sprite quad
+                glDrawArrays(GL_TRIANGLES, 0, m_spriteVerticesNum);     // Render sprite
+        }
+
+
+        // Initializes all the resources needed to render the bloks of the game world
+        int Renderer::initWorldRenderingData()
+        {
+                // Load the tileset that contains all the game's blocks
+                if(!m_blocksTileset.load("../resources/textures/myTileset.png", 5, 16, 16, 16))
+                {
+                        logError("Renderer::initWorldRenderingData() failed, game tileset creation failed!");
                         return 1;
                 }
 
                 // Initialize shader, vao and vbo needed to render the blocks in the game world
                 if(m_worldShader.init("../resources/worldVrtxShader.vert", "../resources/worldFragShader.frag") != 0)
                 {
-                        logError("Renderer::init() failed, world shader creation failed!");
-                        m_gameTileset.unload();
+                        logError("Renderer::initWorldRenderingData() failed, world shader creation failed!");
+                        m_blocksTileset.unload();
                         return 1;
                 }
 
-                // Generate world vao and vbo
+                // Generate vao and vbo to render world's blocks
                 glGenVertexArrays(1, &m_worldVao);
-                glGenBuffers(1, &m_worldVbo);
-
-                // Bind world vao and vbo
                 glBindVertexArray(m_worldVao);
+
+                glGenBuffers(1, &m_worldVbo);
                 glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
 
                 // Allocate space for world vbo
-                glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 30, NULL, GL_DYNAMIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 30 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
 
                 // Define format of data in world vbo (so the vertex shader knows how to use such data)
                 // Vertex's X and y coordinates
@@ -71,240 +210,102 @@ namespace mc2d {
                 m_worldVerticesNum = 0;
                 m_worldVertices = new float[m_worldVerticesBufferSize];
                 
-                m_isInit = true;
                 return 0;
         }
 
 
-        // Terminates all the resources initialized in the init method
-        void Renderer::terminate()
+        // Terminates and deallocates all the resources needed for rendering the blocks of the game world
+        void Renderer::terminateWorldRenderingData()
         {
-                if(!m_isInit)
-                        return;
+                if(m_worldShader.isInit())
+                {
+                        m_worldShader.deactivate();
+                        m_worldShader.terminate();
+                }
 
-                m_gameTileset.deactivate();
-                m_gameTileset.unload();
+                if(m_blocksTileset.isInit())
+                {
+                        m_blocksTileset.deactivate();
+                        m_blocksTileset.unload();
+                }
 
-                m_worldShader.deactivate();
-                m_worldShader.terminate();
+                if(m_worldVao != 0)
+                {
+                        glDeleteVertexArrays(1, &m_worldVao);
+                        m_worldVao = 0;
 
-                glDeleteVertexArrays(1, &m_worldVao);
-                glDeleteBuffers(1, &m_worldVbo);
+                        glDeleteBuffers(1, &m_worldVbo);
+                        m_worldVbo = 0;
+                }
 
                 m_worldVerticesNum = 0;
                 delete[] m_worldVertices;
-
-                m_isInit = false;
         }
 
 
-        // Resizes the viewport
-        // @newWidth: the new width of the viewport
-        // @newHeight: the new height of the viewport
-        void Renderer::resizeViewport(int newWidth, int newHeight)
+        // Initializes all the resources needed to render sprites
+        int Renderer::initSpriteRenderingData()
         {
-                if(!m_isInit)
-                        return;
+                if(m_spriteShader.init("../resources/spriteVrtxShader.vert", "../resources/spriteFragShader.frag") != 0)
+                {
+                        logError("Render::initSpriteRenderingData() failed, sprite shader creation failed!");
+                        return 1;
+                }
 
-                glViewport(0, 0, newWidth, newHeight);
+                float quadVertices[] = {
+                //       x     y         u     v
+                        0.0f, 0.0f,     0.0f, 0.0f,     // Bottom left
+                        1.0f, 0.0f,     1.0f, 0.0f,     // Bottom right
+                        0.0f, 1.0f,     0.0f, 1.0f,     // Top left
+                        1.0f, 0.0f,     1.0f, 0.0f,     // Bottom right
+                        1.0f, 1.0f,     1.0f, 1.0f,     // Top right
+                        0.0f, 1.0f,     0.0f, 1.0f,     // Top left
+                };
+
+                m_spriteVerticesNum = sizeof(quadVertices) / sizeof(float);
+
+                // Generate vao and vbo for sprite rendering
+                glGenVertexArrays(1, &m_spriteVao);
+                glBindVertexArray(m_spriteVao);
+
+                glGenBuffers(1, &m_spriteVbo);
+                glBindBuffer(GL_ARRAY_BUFFER, m_spriteVbo);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+                // Define format of data in sprite vbo
+                // Vertex's X and y coordinates
+                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
+                glEnableVertexAttribArray(0);
+
+                // Vertex's UV coordinates
+                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (2 * sizeof(float)) );
+                glEnableVertexAttribArray(1);
+
+                return 0;
         }
 
 
-        // Renders all the blocks in the given game world that are visible from the given camera
-        void Renderer::renderWorld(GameWorld& world, Camera& camera, bool optimized)
+        // Terminates all the resources needed to render sprites
+        void Renderer::terminateSpriteRenderingData()
         {
-                if(!m_isInit)
+                if(m_spriteShader.isInit())
                 {
-                        logWarn("Renderer::renderWorld() failed, renderer has not been initialized correctly!");
-                        return;
+                        m_spriteShader.deactivate();
+                        m_spriteShader.terminate();
                 }
 
-                m_worldShader.activate();                                               // Activate shader to render the world
-                
-                // Compute view-projection matrix and set uniform
-                glm::mat4 vpMatrix = glm::ortho(0.0f, (float) camera.getWidth(), 0.0f, (float) camera.getHeight()) * camera.getViewMatrix();
-                int viewMatUniform = m_worldShader.getUniformId("transformMatrix");
-                m_worldShader.setUniform(viewMatUniform, vpMatrix);
-
-                glBindVertexArray(m_worldVao);                                          // Bind world vao
-                m_gameTileset.activate();                                               // Bind tileset's texture
-
-                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
-                // that are visible and we need to update data in the world vbo
-                if(world.hasChanged() || camera.hasChanged())
+                if(m_spriteVao != 0)
                 {
-                        if(optimized)
-                                camera.optimizedComputeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
-                        else
-                                camera.computeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
+                        glDeleteVertexArrays(1, &m_spriteVao);
+                        m_spriteVao = 0;
 
-                        // FIXME: Buffer subdata should be used insetad of glBufferData but its not working and I don't know why...
-                        //glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
-                        glBufferData(GL_ARRAY_BUFFER, m_worldVerticesNum * sizeof(float), m_worldVertices, GL_DYNAMIC_DRAW);
-
-                        world.setHasChanged(false);
-                        camera.setHasChanged(false);
+                        glDeleteBuffers(1, &m_spriteVbo);
+                        m_spriteVbo = 0;
                 }
 
-                glClear(GL_COLOR_BUFFER_BIT);
-                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
+                m_spriteVerticesNum = 0;
         }
 
-
-        // Computes vertices (in world coordinates) and texture coordinates for all the blocks in the given chunk,
-        // for now all chunk's blocks will be rendered on screen (the camera is not being used)
-        void Renderer::computeWorldVertices(const GameWorld& world, const Camera& camera)
-        {
-                m_worldVerticesNum = 0;
-                uint32_t blockIndex = 0;
-
-                for(uint32_t y = Chunk::height - 1; y != -1; --y)
-                {
-                        for(uint32_t x = 0; x < Chunk::width; ++x)
-                        {
-                                BlockType currBlock = world.getPlayerChunk().blocks[blockIndex++];
-
-                                // If the current block is not air then we need to compute vertices to render it
-                                if(currBlock != BlockType::AIR)
-                                {
-                                        // Compute bottom left vertex coordinates of the block
-                                        float xPos = (float) x * BLOCK_WIDTH;
-                                        float yPos = (float) y * BLOCK_HEIGHT;
-
-                                        // First triangle bottom left vertex
-                                        m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
-                                        m_worldVertices[m_worldVerticesNum + 1] = yPos;                 // y
-                                        m_worldVertices[m_worldVerticesNum + 2] = 0.0f;                 // u
-                                        m_worldVertices[m_worldVerticesNum + 3] = 0.0f;                 // v
-                                        m_worldVertices[m_worldVerticesNum + 4] = (float) currBlock;    // tile id
-
-                                        // First triangle bottom right vertex
-                                        m_worldVertices[m_worldVerticesNum + 5] = xPos + BLOCK_WIDTH;   // x
-                                        m_worldVertices[m_worldVerticesNum + 6] = yPos;                 // y
-                                        m_worldVertices[m_worldVerticesNum + 7] = 1.0f;                 // u
-                                        m_worldVertices[m_worldVerticesNum + 8] = 0.0f;                 // v
-                                        m_worldVertices[m_worldVerticesNum + 9] = (float) currBlock;    // tile id
-
-                                        // First triangle top left vertex
-                                        m_worldVertices[m_worldVerticesNum + 10] = xPos;                // x
-                                        m_worldVertices[m_worldVerticesNum + 11] = yPos + BLOCK_HEIGHT; // y
-                                        m_worldVertices[m_worldVerticesNum + 12] = 0.0f;                // u
-                                        m_worldVertices[m_worldVerticesNum + 13] = 1.0f;                // v
-                                        m_worldVertices[m_worldVerticesNum + 14] = (float) currBlock;   // tile id
-                                        
-                                        // Second triangle bottom right vertex
-                                        m_worldVertices[m_worldVerticesNum + 15] = xPos + BLOCK_WIDTH;  // x
-                                        m_worldVertices[m_worldVerticesNum + 16] = yPos;                // y
-                                        m_worldVertices[m_worldVerticesNum + 17] = 1.0f;                // u
-                                        m_worldVertices[m_worldVerticesNum + 18] = 0.0f;                // v
-                                        m_worldVertices[m_worldVerticesNum + 19] = (float) currBlock;   // tile id
-                                        
-                                        // Second triangle top right vertex
-                                        m_worldVertices[m_worldVerticesNum + 20] = xPos + BLOCK_WIDTH;  // x
-                                        m_worldVertices[m_worldVerticesNum + 21] = yPos + BLOCK_HEIGHT; // y
-                                        m_worldVertices[m_worldVerticesNum + 22] = 1.0f;                // u
-                                        m_worldVertices[m_worldVerticesNum + 23] = 1.0f;                // v
-                                        m_worldVertices[m_worldVerticesNum + 24] = (float) currBlock;   // tile id
-                                        
-                                        // Second triangle top left vertex
-                                        m_worldVertices[m_worldVerticesNum + 25] = xPos;                // x
-                                        m_worldVertices[m_worldVerticesNum + 26] = yPos + BLOCK_HEIGHT; // y
-                                        m_worldVertices[m_worldVerticesNum + 27] = 0.0f;                // u
-                                        m_worldVertices[m_worldVerticesNum + 28] = 1.0f;                // v
-                                        m_worldVertices[m_worldVerticesNum + 29] = (float) currBlock;   // tile id
-  
-                                        m_worldVerticesNum += 30;
-                                }
-                        }
-                }
-
-                logInfo("Basic world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 30);
-        }
-
-
-        // Computes the vertices (in world coordinates) and the texture coordinates for all the blocks in the given chunk
-        // that are visible from the given camera. (uses an horizontal (1D) greedy meshing algorithm to do so)
-        void Renderer::optimizedComputeWorldVertices(const GameWorld& world, const Camera& camera)
-        {
-                m_worldVerticesNum = 0;
-                uint32_t startBlockIndex = 0;
-
-                for(uint32_t y = Chunk::height - 1; y != -1; --y)
-                {
-                        for(uint32_t x = 0; x < Chunk::width; ++x)
-                        {
-                                BlockType startBlock = world.getPlayerChunk().blocks[startBlockIndex++];
-
-                                if(startBlock == BlockType::AIR)     // Skip air blocks
-                                        continue;
-
-                                uint32_t endX;
-                                uint32_t endBlockIndex = startBlockIndex - 1;
-                                for(endX = x; endX < Chunk::width; ++endX, ++endBlockIndex)
-                                {
-                                        BlockType endBlock = world.getPlayerChunk().blocks[endBlockIndex];
-
-                                        if(startBlock != endBlock)
-                                                break;
-                                }
-
-                                // Compute bottom left vertex coordinates of the rectangle
-                                float xPos = (float) x * BLOCK_WIDTH;
-                                float yPos = (float) y * BLOCK_HEIGHT;
-
-                                float rectWidth = BLOCK_WIDTH * (float) (endX - x);
-                                float rectHeight = BLOCK_HEIGHT;                                // We are using 1D greedy meshing for now (2D would be a lot better)...
-                               
-                                // First triangle bottom left vertex
-                                m_worldVertices[m_worldVerticesNum + 0] = xPos;                 // x
-                                m_worldVertices[m_worldVerticesNum + 1] = yPos;                 // y
-                                m_worldVertices[m_worldVerticesNum + 2] = 0.0f;                 // u
-                                m_worldVertices[m_worldVerticesNum + 3] = 0.0f;                 // v
-                                m_worldVertices[m_worldVerticesNum + 4] = (float) startBlock;   // tile id
-
-                                // First triangle bottom right vertex
-                                m_worldVertices[m_worldVerticesNum + 5] = xPos + rectWidth;     // x 
-                                m_worldVertices[m_worldVerticesNum + 6] = yPos;                 // y
-                                m_worldVertices[m_worldVerticesNum + 7] = (float) (endX - x);   // u
-                                m_worldVertices[m_worldVerticesNum + 8] = 0.0f;                 // v
-                                m_worldVertices[m_worldVerticesNum + 9] = (float) startBlock;   // tile id
-
-                                // First triangle top left vertex
-                                m_worldVertices[m_worldVerticesNum + 10] = xPos;                // x
-                                m_worldVertices[m_worldVerticesNum + 11] = yPos + rectHeight;   // y
-                                m_worldVertices[m_worldVerticesNum + 12] = 0.0f;                // u
-                                m_worldVertices[m_worldVerticesNum + 13] = 1.0f;                // v
-                                m_worldVertices[m_worldVerticesNum + 14] = (float) startBlock;  // tile id
-                                
-                                // Second triangle bottom right vertex
-                                m_worldVertices[m_worldVerticesNum + 15] = xPos + rectWidth;    // x
-                                m_worldVertices[m_worldVerticesNum + 16] = yPos;                // y
-                                m_worldVertices[m_worldVerticesNum + 17] = (float) (endX - x);  // u
-                                m_worldVertices[m_worldVerticesNum + 18] = 0.0f;                // v
-                                m_worldVertices[m_worldVerticesNum + 19] = (float) startBlock;  // tile id
-                                
-                                // Second triangle top right vertex
-                                m_worldVertices[m_worldVerticesNum + 20] = xPos + rectWidth;    // x
-                                m_worldVertices[m_worldVerticesNum + 21] = yPos + rectHeight;   // y
-                                m_worldVertices[m_worldVerticesNum + 22] = (float) (endX - x);  // u
-                                m_worldVertices[m_worldVerticesNum + 23] = 1.0f;                // v
-                                m_worldVertices[m_worldVerticesNum + 24] = (float) startBlock;  // tile id
-                                
-                                // Second triangle top left vertex
-                                m_worldVertices[m_worldVerticesNum + 25] = xPos;                // x
-                                m_worldVertices[m_worldVerticesNum + 26] = yPos + rectHeight;   // y
-                                m_worldVertices[m_worldVerticesNum + 27] = 0.0f;                // u
-                                m_worldVertices[m_worldVerticesNum + 28] = 1.0f;                // v
-                                m_worldVertices[m_worldVerticesNum + 29] = (float) startBlock;  // tile id
-                                
-                                m_worldVerticesNum += 30;
-                                startBlockIndex += endBlockIndex - startBlockIndex;
-                                x = endX - 1;
-                        }
-                }
-
-                logInfo("Optimized world rendering computed %u vertices for %u rectangles", m_worldVerticesNum, m_worldVerticesNum / 30);
-        }      
 }
 
 

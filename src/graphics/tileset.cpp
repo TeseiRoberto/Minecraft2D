@@ -53,10 +53,10 @@ namespace mc2d {
         }
 
 
-        // Destroyes the opengl texture array associated to the tileset
+        // Destroyes the OpenGL texture array associated to the tileset
         void Tileset::unload()
         {
-                if(isValid())
+                if(isInit())
                 {
                         glDeleteTextures(1, &m_textureId);
                         m_textureId = 0;
@@ -69,10 +69,10 @@ namespace mc2d {
         }
 
 
-        // Binds the texture array associated to the tileset to the opengl context
+        // Binds the texture array associated to the tileset to the OpenGL context
         void Tileset::activate() const
         {
-                if(!isValid())
+                if(!isInit())
                 {
                         logWarn("Tileset::activate() failed, the tileset has not been loaded correctly!");
                         return;
@@ -83,7 +83,7 @@ namespace mc2d {
         }
 
 
-        // Unbinds the currently bound TEXTURE_2D_ARRAY from the opengl context
+        // Unbinds the currently bound TEXTURE_2D_ARRAY from the OpenGL context
         void Tileset::deactivate() const
         {
                 glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
@@ -97,6 +97,7 @@ namespace mc2d {
         // @cols: number of columns in which the image must be split
         // @tileWidth: the width of a single tile
         // @tileHeight: the height of a single tile
+        // @returns: true if creation of texture array is successfull, false otherwise
         bool Tileset::createTextureArray(unsigned char* imgData, int imgChannelsNum, uint32_t rows, uint32_t cols, uint32_t tileWidth, uint32_t tileHeight)
         {
                 if(imgData == nullptr)
@@ -119,7 +120,7 @@ namespace mc2d {
                 }
 
                 // If a tileset was already loaded then unload it before loading the new one
-                if(m_textureId != 0)
+                if(isInit())
                         unload();
 
                 // Create the opengl textures array

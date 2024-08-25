@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Minecraft2D VERSION 1.0)
 
-add_compile_options("-ggdb")
+#add_compile_options("-ggdb")
 
 set (SRCS
         libs/glad/src/glad.c
@@ -20,6 +20,7 @@ set (SRCS
         src/graphics/renderer.cpp
         src/graphics/camera.cpp
         src/graphics/tileset.cpp
+        src/graphics/sprite.cpp
 )
 
 add_executable(minecraft2D ${SRCS})
