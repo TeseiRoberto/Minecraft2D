@@ -6,20 +6,21 @@ namespace mc2d {
 
 
         // GameWorld constructor, creates a single uninitialized chunk
-        GameWorld::GameWorld() : m_hasChanged(true)
+        GameWorld::GameWorld() : m_hasChanged(true), m_player(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER)
         {
                 initializeDummyWorld();
         }
 
 
         // Creates a game world that contains the given chunks
-        GameWorld::GameWorld(std::vector<Chunk>&& chunks) : m_hasChanged(true)
+        GameWorld::GameWorld(std::vector<Chunk>&& chunks) : m_hasChanged(true), m_player(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER)
         {
                 if(chunks.size() != 0)
                 {
                         size_t playerChunkIndex = chunks.size() / 2;
                         m_loadedChunks = std::move(chunks);
-                        m_playerChunk = &(m_loadedChunks[playerChunkIndex]);
+
+                        // TODO: Compute player pos in the chunk
                 } else {
                         logWarn("GameWorld::GameWorld() failed, given chunks list is empty, a dummy world has been created!");
                         initializeDummyWorld();
@@ -31,7 +32,6 @@ namespace mc2d {
         GameWorld& GameWorld::operator = (GameWorld&& world)
         {
                 m_loadedChunks = std::move(world.m_loadedChunks);
-                m_playerChunk = world.m_playerChunk;
                 m_hasChanged = true;
 
                 return *this;
@@ -139,11 +139,23 @@ namespace mc2d {
                         if(it->id == id)
                         {
                                 m_loadedChunks.erase(it);
+                                m_hasChanged = true;
                                 return;
                         }
                 }
+        }
 
-                m_hasChanged = true;
+
+        // Returns a pointer to the chunk that contains the player, nullptr if such chunk cannot be determined
+        Chunk* GameWorld::getPlayerChunk() 
+        {
+                for(Chunk& c : m_loadedChunks)
+                {
+                        if(c.getPos().x <= m_player.getPos().x && c.getPos().x + (float) Chunk::width > m_player.getPos().x)
+                                return &c;
+                }
+
+                return nullptr;
         }
 
 
@@ -154,7 +166,7 @@ namespace mc2d {
                 c.id = 0;
 
                 m_loadedChunks.push_back(std::move(c));
-                m_playerChunk = &(m_loadedChunks[0]);
+                // TODO: Compute player position
         }
 
 }

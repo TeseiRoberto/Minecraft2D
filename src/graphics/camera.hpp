@@ -33,22 +33,15 @@ namespace mc2d {
                 inline float            getZoom() const                 { return m_zoom; }
                 inline uint8_t          getWidth() const                { return m_width; }
                 inline uint8_t          getHeight() const               { return m_height; }
-                inline bool             hasChanged() const           { return m_hasChanged; }
+                inline bool             hasChanged() const              { return m_hasChanged; }
 
                 glm::vec2               windowToWorldCoord(float x, float y, float windowWidth, float windowHeight) const;
+                std::vector<Chunk const*> getVisibleChunks(const GameWorld& world) const;
+
                 glm::mat4               getViewMatrix() const;
                 void                    updatePos(float x, float y)     { m_pos.x += x; m_pos.y += y; m_hasChanged = true; }
-
-                void                    computeVisibleBlocksVertices(const GameWorld& world, float* vertices, const size_t maxVerticesNum, size_t* verticesNum);
-                void                    optimizedComputeVisibleBlocksVertices(const GameWorld& world, float* vertices, const size_t maxVerticesNum, size_t* verticesNum);
-
-                bool                    generateBlockVertices(float* vertices, size_t& index, const size_t& maxVerticesNum,
-                                                const float& startX, const float& startY, const float& endX, const float& endY, BlockType block) const;
-
+        
         private:
-
-                std::vector<const Chunk*> computeVisibleChunks(const GameWorld& world);
-
                 static constexpr uint8_t        MIN_WIDTH = 8;  // Minimum width for a camera (measured in blocks)
                 static constexpr uint8_t        MIN_HEIGHT = 8; // Minimum height for a camera (measured in blocks)
 

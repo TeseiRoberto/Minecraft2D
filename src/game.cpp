@@ -113,14 +113,28 @@ namespace mc2d {
                 printHelp();
                 m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
 
+                // TODO: Move this somewhere else
+                Sprite playerSprite;
+                if(!playerSprite.load("../resources/textures/player/steveHead.png"))
+                {
+                        logError("Game::run() failed, cannot load player sprite!");
+                        m_gameState = GameState::QUITTED;
+                        return;
+                }
+
                 while(!glfwWindowShouldClose(m_window))
                 {
                         m_renderer.clearScreen();
                         m_renderer.renderWorld(m_gameWorld, m_camera, m_optimizedDraw);
 
+                        // TODO: need to integrate player in the game and to fix problem with world rendering
+                        //m_renderer.renderSprite(playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(1.0f), 0.0f, m_camera);
+
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
                 }
+
+                playerSprite.unload();
 
                 m_gameState = GameState::QUITTED;
         }
@@ -217,8 +231,11 @@ namespace mc2d {
                                         logWarn("Game Info:");
                                         logInfo("       - camera pos: (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
                                         logInfo("       - camera size: (%f, %f)", game->m_camera.getWidth(), game->m_camera.getHeight());
-                                        logInfo("       - id of the current chunk: %d", game->m_gameWorld.getPlayerChunk().id);
-                                        logInfo("       - current chunk biome: %s\n", Biome::getBiomeProperties(game->m_gameWorld.getPlayerChunk().biome).name.c_str());
+                                        logInfo("       - player pos: (%f, %f)", game->m_gameWorld.getPlayer().getPos().x, game->m_gameWorld.getPlayer().getPos().y);
+
+                                        Chunk* playerChunk = game->m_gameWorld.getPlayerChunk();
+                                        logInfo("       - id of the current chunk: %d", playerChunk == nullptr ? 0 : playerChunk->id);
+                                        logInfo("       - current chunk biome: %s\n", playerChunk == nullptr ? "unknown" : Biome::getBiomeProperties(playerChunk->biome).name.c_str());
                                 }
                                 break;
 

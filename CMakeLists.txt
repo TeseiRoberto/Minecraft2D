@@ -16,8 +16,11 @@ set (SRCS
         src/world/gameWorld.cpp
         src/world/worldGenerator.cpp
 
+        src/entity.cpp
+
         src/graphics/shader.cpp
         src/graphics/renderer.cpp
+        src/graphics/worldRenderer.cpp
         src/graphics/camera.cpp
         src/graphics/tileset.cpp
         src/graphics/sprite.cpp

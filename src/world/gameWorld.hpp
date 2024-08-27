@@ -22,6 +22,7 @@
 
 #include "logging.hpp"
 #include "block.hpp"
+#include "entity.hpp"
 
 namespace mc2d {
 
@@ -35,7 +36,7 @@ namespace mc2d {
                 int                     id;                     // Uniquely identifies the chunk in the game world (is negative for left chunks, positive for the right ones)
                 BiomeType               biome;
                 std::vector<BlockType>  blocks;                 // Keeps track of all the blocks in the chunk
-
+                std::vector<Entity>     entities;               // Keeps track of all the entities that are contained in the chunk
 
                 // Returns the coordinates (in world space) of the top left corner of the chunk
                 inline glm::vec2  getPos() const                { return glm::vec2( (float) (id * Chunk::width) * BLOCK_WIDTH, (float) Chunk::height * BLOCK_HEIGHT); }
@@ -64,15 +65,18 @@ namespace mc2d {
                 void                                    appendChunk(Chunk&& newChunk);
                 void                                    removeChunk(int id);
                 inline const std::vector<Chunk>&        getLoadedChunks() const                         { return m_loadedChunks; }
-                inline const Chunk&                     getPlayerChunk() const                          { return *m_playerChunk; }
+
+                inline Entity&                          getPlayer()                                     { return m_player; }
+                Chunk*                                  getPlayerChunk();
 
 
         private:
                 void                    initializeDummyWorld();
 
                 bool                    m_hasChanged;           // Flag used to indicate that one or more blocks have been added/removed from the world
-                Chunk*                  m_playerChunk;          // Pointer to the chunk in which the player is (must never be nullptr)
                 std::vector<Chunk>      m_loadedChunks;
+        
+                Entity                  m_player;               // The main player
         };
 
 }

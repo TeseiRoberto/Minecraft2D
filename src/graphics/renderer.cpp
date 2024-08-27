@@ -4,9 +4,7 @@
 namespace mc2d {
 
 
-        Renderer::Renderer() : m_isInit(false),
-                m_worldVao(0), m_worldVbo(0), m_worldVerticesBufferSize(Chunk::width * Chunk::height * 30), m_worldVertices(nullptr),
-                m_spriteVerticesNum(0), m_spriteVao(0), m_spriteVbo(0)
+        Renderer::Renderer() : m_isInit(false), m_spriteVao(0), m_spriteVbo(0)
         {}
 
 
@@ -28,16 +26,18 @@ namespace mc2d {
                 }
 
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);           // Set clear color used to clear screen
+                glFrontFace(GL_CCW);
 
-                if(initWorldRenderingData() != 0)               // Initialize resources needed to render the blocks of the game world
+                 // Initialize the world renderer
+                if(m_worldRenderer.init(Chunk::width * Chunk::height) != 0)
                 {
-                        logError("Render::init() failed, initWorldRenderingData() failed!");
+                        logError("Render::init() failed, initialization of WorldRenderer failed!");
                         return 1;
                 }
                
                 if(initSpriteRenderingData() != 0)              // Initialize resources needed to render sprites
                 {
-                        terminateWorldRenderingData();
+                        m_worldRenderer.terminate();
                         logError("Render::init() failed, initSpriteRenderingData() failed!");
                         return 1;
                 }
@@ -53,7 +53,7 @@ namespace mc2d {
                 if(!m_isInit)
                         return;
 
-                terminateWorldRenderingData();
+                m_worldRenderer.terminate();
                 terminateSpriteRenderingData();
 
                 m_isInit = false;
@@ -91,33 +91,7 @@ namespace mc2d {
                         return;
                 }
 
-                m_worldShader.activate();                                               // Activate shader to render the world
-                m_blocksTileset.activate();                                             // Bind tileset's texture
-                
-                // Compute view-projection matrix and set uniform
-                glm::mat4 vpMatrix = glm::ortho(0.0f, (float) camera.getWidth(), 0.0f, (float) camera.getHeight()) * camera.getViewMatrix();
-                int viewMatUniform = m_worldShader.getUniformId("transformMatrix");
-                m_worldShader.setUniform(viewMatUniform, vpMatrix);
-
-                glBindVertexArray(m_worldVao);                                          // Bind world vao
-
-                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
-                // that are visible and we need to update data in the world vbo
-                if(world.hasChanged() || camera.hasChanged())
-                {
-                        if(optimized)
-                                camera.optimizedComputeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
-                        else
-                                camera.computeVisibleBlocksVertices(world, m_worldVertices, m_worldVerticesBufferSize, &m_worldVerticesNum);
-
-                        glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
-                        glBufferSubData(GL_ARRAY_BUFFER, 0, m_worldVerticesNum * sizeof(float), m_worldVertices);
-
-                        world.setHasChanged(false);
-                        camera.setHasChanged(false);
-                }
-
-                glDrawArrays(GL_TRIANGLES, 0, m_worldVerticesNum);
+                m_worldRenderer.render(world, camera, optimized);
         }
 
 
@@ -161,85 +135,7 @@ namespace mc2d {
                 m_spriteShader.setUniform(mvpMatUniform, mvpMatrix);
 
                 glBindVertexArray(m_spriteVao);                         // Bind vao to render sprite quad
-                glDrawArrays(GL_TRIANGLES, 0, m_spriteVerticesNum);     // Render sprite
-        }
-
-
-        // Initializes all the resources needed to render the bloks of the game world
-        int Renderer::initWorldRenderingData()
-        {
-                // Load the tileset that contains all the game's blocks
-                if(!m_blocksTileset.load("../resources/textures/myTileset.png", 5, 16, 16, 16))
-                {
-                        logError("Renderer::initWorldRenderingData() failed, game tileset creation failed!");
-                        return 1;
-                }
-
-                // Initialize shader, vao and vbo needed to render the blocks in the game world
-                if(m_worldShader.init("../resources/worldVrtxShader.vert", "../resources/worldFragShader.frag") != 0)
-                {
-                        logError("Renderer::initWorldRenderingData() failed, world shader creation failed!");
-                        m_blocksTileset.unload();
-                        return 1;
-                }
-
-                // Generate vao and vbo to render world's blocks
-                glGenVertexArrays(1, &m_worldVao);
-                glBindVertexArray(m_worldVao);
-
-                glGenBuffers(1, &m_worldVbo);
-                glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);
-
-                // Allocate space for world vbo
-                glBufferData(GL_ARRAY_BUFFER, Chunk::width * Chunk::height * 30 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-
-                // Define format of data in world vbo (so the vertex shader knows how to use such data)
-                // Vertex's X and y coordinates
-                glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) 0);
-                glEnableVertexAttribArray(0);
-
-                // Vertex's UV coordinates
-                glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (2 * sizeof(float)) );
-                glEnableVertexAttribArray(1);
-
-                // Vertex's tile id (id of the texture in the tileset's texture array)
-                glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (4 * sizeof(float)) );
-                glEnableVertexAttribArray(2);
-
-                // Allocate a memory buffer to compute world data
-                m_worldVerticesNum = 0;
-                m_worldVertices = new float[m_worldVerticesBufferSize];
-                
-                return 0;
-        }
-
-
-        // Terminates and deallocates all the resources needed for rendering the blocks of the game world
-        void Renderer::terminateWorldRenderingData()
-        {
-                if(m_worldShader.isInit())
-                {
-                        m_worldShader.deactivate();
-                        m_worldShader.terminate();
-                }
-
-                if(m_blocksTileset.isInit())
-                {
-                        m_blocksTileset.deactivate();
-                        m_blocksTileset.unload();
-                }
-
-                if(m_worldVao != 0)
-                {
-                        glDeleteVertexArrays(1, &m_worldVao);
-                        m_worldVao = 0;
-
-                        glDeleteBuffers(1, &m_worldVbo);
-                        m_worldVbo = 0;
-                }
-
-                m_worldVerticesNum = 0;
-                delete[] m_worldVertices;
+                glDrawArrays(GL_TRIANGLES, 0, 6);                       // Render textured quad
         }
 
 
@@ -261,8 +157,6 @@ namespace mc2d {
                         1.0f, 1.0f,     1.0f, 1.0f,     // Top right
                         0.0f, 1.0f,     0.0f, 1.0f,     // Top left
                 };
-
-                m_spriteVerticesNum = sizeof(quadVertices) / sizeof(float);
 
                 // Generate vao and vbo for sprite rendering
                 glGenVertexArrays(1, &m_spriteVao);
@@ -302,8 +196,6 @@ namespace mc2d {
                         glDeleteBuffers(1, &m_spriteVbo);
                         m_spriteVbo = 0;
                 }
-
-                m_spriteVerticesNum = 0;
         }
 
 }
