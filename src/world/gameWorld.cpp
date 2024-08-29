@@ -58,6 +58,19 @@ namespace mc2d {
         }
 
 
+        // Updates all the entities contained in the chunks currently loaded
+        void GameWorld::update(float deltaTime)
+        {
+                m_player.update(deltaTime);
+
+                for(auto& c : m_loadedChunks)
+                {
+                        for(auto& entity : c.entities)
+                                entity.update(deltaTime);
+                }
+        }
+
+
         // Changes the block at the specified location
         // @x: x coordinate of the block in world space
         // @y: y coordinate of the block in world space

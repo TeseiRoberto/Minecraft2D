@@ -113,23 +113,39 @@ namespace mc2d {
                 printHelp();
                 m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
 
-                // TODO: Move this somewhere else
+                // TODO: Move this somewhere else =====
                 Sprite playerSprite;
                 if(!playerSprite.load("../resources/textures/player/steveHead.png"))
                 {
                         logError("Game::run() failed, cannot load player sprite!");
                         m_gameState = GameState::QUITTED;
                         return;
-                }
+                }//====================================
+
+                std::chrono::high_resolution_clock::time_point lastFrameTime = std::chrono::high_resolution_clock::now();
+                std::chrono::high_resolution_clock::time_point currFrameTime;
+                std::chrono::duration<float, std::milli> deltaTime;
 
                 while(!glfwWindowShouldClose(m_window))
                 {
+                        // Compute delta time
+                        currFrameTime = std::chrono::high_resolution_clock::now();
+                        deltaTime = currFrameTime - lastFrameTime;
+                        lastFrameTime = currFrameTime;
+
+                        // Update world
+                        m_gameWorld.update(deltaTime.count());
+
+                        // TODO: this works for gameplay but triggers recomputation of all the vertices for all the visible blocks,
+                        // doing this each frame seems a little overkill...
+                        m_camera.centerOnPoint(m_gameWorld.getPlayer().getPos());
+
+                        // Render game
                         m_renderer.clearScreen();
                         m_renderer.renderWorld(m_gameWorld, m_camera, m_optimizedDraw);
+                        m_renderer.renderSprite(playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(0.5f), 0.0f, m_camera);
 
-                        // TODO: need to integrate player in the game and to fix problem with world rendering
-                        //m_renderer.renderSprite(playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(1.0f), 0.0f, m_camera);
-
+                        // Poll events and swap buffers
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
                 }
@@ -239,25 +255,25 @@ namespace mc2d {
                                 }
                                 break;
 
-                        // Camera movement
+                        // Player movement
                         case GLFW_KEY_LEFT:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_camera.updatePos(-0.4f, 0.0f);
+                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(-80.0f, 0.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_RIGHT:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_camera.updatePos(0.4f, 0.0f);
+                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(80.0f, 0.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_UP:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_camera.updatePos(0.0f, 0.4f);
+                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, 80.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_DOWN:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_camera.updatePos(0.0f, -0.4f);
+                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, -80.0f, 0.0f));
                                 break;
 
                         // Camera resize

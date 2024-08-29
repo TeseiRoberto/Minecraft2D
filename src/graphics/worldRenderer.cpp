@@ -123,7 +123,7 @@ namespace mc2d {
                 int viewMatUniform = m_worldShader.getUniformId("transformMatrix");
                 m_worldShader.setUniform(viewMatUniform, vpMatrix);
 
-                // If chunk has changed then we must recalculate the vertices of all the blocks in the game world
+                // If game world has changed then we must recalculate the vertices of all the blocks in the game world
                 // that are visible and we need to update data in the world vbo
                 if(world.hasChanged() || camera.hasChanged())
                 {
@@ -131,10 +131,10 @@ namespace mc2d {
                         if(optimized)
                         {
                                 m_currBlocksInBatch = optimizedComputeVisibleBlocksVertices(world, camera, m_blocksVertices, m_maxBlocksInBatch * 6, verticesNum);
-                                logInfo("optimizedComputeVisibleBlocksVertices computed %u vertices for %u blocks (%u triangles)", verticesNum, m_currBlocksInBatch, m_currBlocksInBatch / 2);
+                                //logInfo("optimizedComputeVisibleBlocksVertices computed %u vertices for %u blocks (%u triangles)", verticesNum, m_currBlocksInBatch, m_currBlocksInBatch / 2);
                         } else {
                                 m_currBlocksInBatch = computeVisibleBlocksVertices(world, camera, m_blocksVertices, m_maxBlocksInBatch * 6, verticesNum);
-                                logInfo("computeVisibleBlocksVertices computed %u vertices for %u blocks (%u triangles)", verticesNum, m_currBlocksInBatch, m_currBlocksInBatch / 2);
+                                //logInfo("computeVisibleBlocksVertices computed %u vertices for %u blocks (%u triangles)", verticesNum, m_currBlocksInBatch, m_currBlocksInBatch / 2);
                         }
 
                         glBindBuffer(GL_ARRAY_BUFFER, m_worldVbo);

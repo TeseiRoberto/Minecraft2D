@@ -45,6 +45,16 @@ namespace mc2d {
         }
 
 
+        // Sets camera position so that the given point is at the center of the camera
+        // @point: point on which camera will be centered
+        void Camera::centerOnPoint(const glm::vec3& point)
+        {
+                m_pos.x = point.x - ((float) m_width / 2.0f);
+                m_pos.y = point.y + ((float) m_height / 2.0f);
+                m_hasChanged = true;
+        }
+
+
         // Converts coordinates from window space to world space
         // @x: x coordinate in window space
         // @y: y coordinate in window space

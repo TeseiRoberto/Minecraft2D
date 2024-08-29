@@ -22,18 +22,20 @@ namespace mc2d {
                 Camera(float xPos, float yPos, float zoom, uint8_t width, uint8_t height);
                 ~Camera() = default;
 
-                inline void             setPos(glm::vec3& pos)          { m_pos = pos;          m_hasChanged = true; }
-                inline void             setZoom(float zoom)             { m_zoom = zoom;        m_hasChanged = true; }
+                inline void             setPos(glm::vec3& pos)                  { m_pos = pos;          m_hasChanged = true; }
+                inline void             setZoom(float zoom)                     { m_zoom = zoom;        m_hasChanged = true; }
                 void                    setWidth(uint8_t width);
                 void                    setHeight(uint8_t height);
-                inline void             setHasChanged(bool hasChanged)  { m_hasChanged = hasChanged; }
+                inline void             setHasChanged(bool hasChanged)          { m_hasChanged = hasChanged; }
 
 
-                inline const glm::vec3& getPos() const                  { return m_pos; }
-                inline float            getZoom() const                 { return m_zoom; }
-                inline uint8_t          getWidth() const                { return m_width; }
-                inline uint8_t          getHeight() const               { return m_height; }
-                inline bool             hasChanged() const              { return m_hasChanged; }
+                inline const glm::vec3& getPos() const                          { return m_pos; }
+                inline float            getZoom() const                         { return m_zoom; }
+                inline uint8_t          getWidth() const                        { return m_width; }
+                inline uint8_t          getHeight() const                       { return m_height; }
+                inline bool             hasChanged() const                      { return m_hasChanged; }
+
+                void                    centerOnPoint(const glm::vec3& point);
 
                 glm::vec2               windowToWorldCoord(float x, float y, float windowWidth, float windowHeight) const;
                 std::vector<Chunk const*> getVisibleChunks(const GameWorld& world) const;

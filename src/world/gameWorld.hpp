@@ -3,12 +3,13 @@
 //
 // The GameWorld class has responsibility of managing chunks (loading, unloading, ...).
 //
-// The Chunk struct is used to keep track of all the blocks that makes up a portion of the game world.
+// The Chunk struct is used to keep track of all the blocks that makes up a portion of the game world and all the entities
+// that are contained in it.
 //
-// The game world is structured as a sequence of chunks, the chunk in which the player spawns is the root chunk and
+// The game world is structured as a sequence of chunks, the chunk in which the player spawn is the root chunk and
 // has the id 0; chunks to the left of the root chunk have negative ids while chunks to the right have positive ids.
-// The coordinate system used in the game world has the origin positioned in the bottom left block of the root chunk,
-// in particular the position (0,0) in world space corresponds to the bottom left vertex of such block.
+// The coordinate system used in the game world is a cartesian system which has the origin positioned in the bottom left
+// block of the root chunk, in particular the position (0,0) in world space corresponds to the bottom left vertex of such block.
 //
 
 #ifndef GAME_WORLD_H
@@ -55,6 +56,8 @@ namespace mc2d {
 
                 bool                                    loadFromFile(const std::string& filepath);
                 bool                                    saveToFile(const std::string& filepath);
+
+                void                                    update(float deltaTime);
 
                 void                                    setBlock(float x, float y, BlockType newBlock);
                 inline void                             setHasChanged(bool changed)                     { m_hasChanged = changed; }
