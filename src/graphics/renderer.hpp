@@ -11,7 +11,6 @@
 #include "shader.hpp"
 #include "sprite.hpp"
 #include "camera.hpp"
-#include "worldRenderer.hpp"
 
 namespace mc2d {
 
@@ -36,18 +35,15 @@ namespace mc2d {
                 void            resizeViewport(int newWidth, int newHeight);
                 void            clearScreen();
 
-                void            renderWorld(GameWorld& world, Camera& camera, bool optimized);
-
                 void            renderSprite(const Sprite& sprite, const glm::vec3& pos, const glm::vec3& scale, const float rotation, const Camera& camera);
                 void            renderSprite(const Sprite& sprite, const glm::mat4& modelMat, const glm::mat4& viewMat, const glm::mat4& projectionMat);
 
         private:
 
-                int     initSpriteRenderingData();
-                void    terminateSpriteRenderingData();
+                int             initSpriteRenderingData();
+                void            terminateSpriteRenderingData();
 
                 bool            m_isInit;
-                WorldRenderer   m_worldRenderer;
 
                 // Data needed to render sprites
                 uint32_t        m_spriteVao;

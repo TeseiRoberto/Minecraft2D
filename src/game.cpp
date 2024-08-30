@@ -75,7 +75,7 @@ namespace mc2d {
                 }
 
                 // Create and initialize start scene
-                m_currScene = std::make_unique<GameScene>();
+                m_currScene = std::make_unique<MenuScene>();
                 if(m_currScene->init() != 0)
                 {
                         logError("Game::init() failed, initialization of first game scene failed!");
@@ -147,6 +147,27 @@ namespace mc2d {
                 }
 
                 m_gameState = GameState::QUITTED;
+        }
+
+
+        // Sets the current scene of the game, it can be used to switch from a scene A to 
+        // a scene B but after this call sceneA will be terminated so you must return control
+        // immediately to the game class
+        // @newScene: the new scene for the game
+        // @returns: true on success, false otherwise
+        bool Game::setScene(std::unique_ptr<Scene>&& newScene)
+        {
+                if(newScene->init() != 0)
+                {
+                        logError("Game::setScene() failed, initialization of new scene failed!");
+                        return false;
+                }
+
+                if(m_currScene != nullptr)
+                        m_currScene->terminate();
+
+                m_currScene = std::move(newScene);
+                return true;
         }
 
 

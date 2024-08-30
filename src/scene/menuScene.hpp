@@ -4,6 +4,8 @@
 #ifndef MENU_SCENE_H
 #define MENU_SCENE_H
 
+#include <memory>
+
 #include "logging.hpp"
 #include "game.hpp"
 #include "scene.hpp"

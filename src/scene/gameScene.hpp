@@ -5,6 +5,7 @@
 #define GAME_SCENE_H
 
 #include <ctime>
+#include <memory>
 
 #include "logging.hpp"
 #include "game.hpp"
@@ -12,6 +13,7 @@
 #include "world/gameWorld.hpp"
 #include "world/worldGenerator.hpp"
 #include "graphics/renderer.hpp"
+#include "graphics/worldRenderer.hpp"
 #include "graphics/camera.hpp"
 #include "graphics/sprite.hpp"
 
@@ -40,6 +42,7 @@ namespace mc2d {
 
                 Sprite          m_playerSprite;         // TODO: move this somewhere else ???
                 
+                WorldRenderer   m_worldRenderer;
                 Camera          m_playerCamera;         // Camera focused on player
                 GameWorld       m_gameWorld;
         

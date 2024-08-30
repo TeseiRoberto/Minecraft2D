@@ -17,6 +17,7 @@ namespace mc2d {
         {
                 // TODO: add implementation...
 
+                logInfo("Press any key to launch game scene");
                 m_isInit = true;
                 return 0;
         }
@@ -40,7 +41,7 @@ namespace mc2d {
         void MenuScene::update(Game& game, float deltaTime)
         {
                 // TODO: add implementation...
-                logWarn("MenuScene::update() called, but still lacks implementation");
+                //logWarn("MenuScene::update() called, but still lacks implementation");
         }
 
 
@@ -50,7 +51,7 @@ namespace mc2d {
         void MenuScene::render(Game& game, Renderer& renderer)
         {
                 // TODO: add implementation...
-                logWarn("MenuScene::render() called, but still lacks implementation");
+                //logWarn("MenuScene::render() called, but still lacks implementation");
         }
 
 
@@ -63,8 +64,15 @@ namespace mc2d {
         // @mods: the state of modifier keys
         void MenuScene::onKeyEvent(Game& game, GLFWwindow* wnd, int key, int scancode, int action, int mods)
         {
-                // TODO: add implementation...
-                logWarn("Key event happend in MenuScene");
+                // On key press switch to the game scene
+                if(action == GLFW_PRESS)
+                {
+                        if(game.setScene(std::make_unique<GameScene>()))
+                        {
+                                logInfo("SWITCHING TO GAME SCENE!")
+                                return;
+                        }
+                }
         }
 
 

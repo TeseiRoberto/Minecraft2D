@@ -25,13 +25,21 @@ namespace mc2d {
                 if(isInit())
                         return 1;
 
+                // Initialize the world renderer
+                if(m_worldRenderer.init(Chunk::width * Chunk::height) != 0)
+                {
+                        logError("GameScene::init() failed, initialization of WorldRenderer failed!");
+                        return 1;
+                }
+
                 // TODO: Move this somewhere else ??? =====
                 if(!m_playerSprite.load("../resources/textures/player/steveHead.png"))
                 {
                         logError("GameScene::init() failed, cannot load player sprite!");
+                        m_worldRenderer.terminate();
                         return 1;
                 }//====================================
-
+                
                 printHelp();
                 m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
 
@@ -45,6 +53,8 @@ namespace mc2d {
         {
                 if(!isInit())
                         return;
+
+                m_worldRenderer.terminate();
 
                 m_playerSprite.deactivate();
                 m_playerSprite.unload();
@@ -83,7 +93,7 @@ namespace mc2d {
                         return;
                 }
 
-                renderer.renderWorld(m_gameWorld, m_playerCamera, m_optimizedDraw);
+                m_worldRenderer.render(m_gameWorld, m_playerCamera, m_optimizedDraw);
                 renderer.renderSprite(m_playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(0.5f), 0.0f, m_playerCamera);
         }
 
@@ -105,6 +115,15 @@ namespace mc2d {
 
                 switch(key)
                 {
+                        // Returns to the menu screen
+                        case GLFW_KEY_ESCAPE:
+                                if(action == GLFW_PRESS && game.setScene(std::make_unique<MenuScene>()))
+                                {
+                                        logInfo("SWITCHING TO MENU SCENE!")
+                                        return;
+                                }
+                                break;
+
                         // Debug code to generate a new random world when G is pressed
                         case GLFW_KEY_G:
                                 if(action == GLFW_PRESS)
@@ -278,6 +297,7 @@ namespace mc2d {
                 logInfo("       - use keypad + and keypad - to change camera size");
 
                 logInfo("Other controls:");
+                logInfo("       - press Esc to go back to menu");
                 logInfo("       - press H to show this controls list");
                 logInfo("       - press F1 to show some game info\n");
         }

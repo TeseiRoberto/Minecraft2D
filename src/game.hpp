@@ -37,7 +37,10 @@ namespace mc2d {
                 void                    terminate();
                 void                    run();
 
+                bool                    setScene(std::unique_ptr<Scene>&& newScene);
+
                 inline GameSettings&    getSettings()           { return m_settings; }
+
 
         private:
 

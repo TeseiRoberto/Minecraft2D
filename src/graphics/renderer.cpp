@@ -28,16 +28,8 @@ namespace mc2d {
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);           // Set clear color used to clear screen
                 glFrontFace(GL_CCW);
 
-                 // Initialize the world renderer
-                if(m_worldRenderer.init(Chunk::width * Chunk::height) != 0)
-                {
-                        logError("Render::init() failed, initialization of WorldRenderer failed!");
-                        return 1;
-                }
-               
                 if(initSpriteRenderingData() != 0)              // Initialize resources needed to render sprites
                 {
-                        m_worldRenderer.terminate();
                         logError("Render::init() failed, initSpriteRenderingData() failed!");
                         return 1;
                 }
@@ -53,7 +45,6 @@ namespace mc2d {
                 if(!m_isInit)
                         return;
 
-                m_worldRenderer.terminate();
                 terminateSpriteRenderingData();
 
                 m_isInit = false;
@@ -79,19 +70,6 @@ namespace mc2d {
                         return;
 
                 glClear(GL_COLOR_BUFFER_BIT);
-        }
-
-
-        // Renders all the blocks in the given game world that are visible from the given camera
-        void Renderer::renderWorld(GameWorld& world, Camera& camera, bool optimized)
-        {
-                if(!m_isInit)
-                {
-                        logWarn("Renderer::renderWorld() failed, renderer has not been initialized correctly!");
-                        return;
-                }
-
-                m_worldRenderer.render(world, camera, optimized);
         }
 
 
