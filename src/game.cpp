@@ -4,8 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_camera(Camera(0.0f, 18.0f, 1.0f, 18, 18)), m_gameWorld(GameWorld()),
-                m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_currScene(nullptr)
         {}
 
 
@@ -19,12 +18,13 @@ namespace mc2d {
 
         // Attempts to initialize all the resources needed by the game
         // @settings: struct that defines the game settings
-        void Game::init(const GameSettings& settings)
+        // @returns: zero on success, non zero on failure
+        int Game::init(const GameSettings& settings)
         {
                 if(m_gameState != GameState::UNINITIALIZED)
                 {
                         logWarn("Game::init() failed, game has already been initialized!");
-                        return;
+                        return 1;
                 }
 
                 m_gameState = GameState::INITIALIZED;
@@ -35,7 +35,7 @@ namespace mc2d {
                 {
                         logError("Game::init() failed, glfw initialization failed!");
                         m_gameState = GameState::UNINITIALIZED;
-                        return;
+                        return 1;
                 }
 
                 // Set window properties and create the game window
@@ -46,7 +46,7 @@ namespace mc2d {
                 {
                         logError("Game::init() failed, glfwCreateWindow failed!");
                         terminate();
-                        return;
+                        return 1;
                 }
 
                 // Associate the newly created window and this game instance (this is used in callback functions to retrieve the game instance)
@@ -59,23 +59,31 @@ namespace mc2d {
 
                 glfwMakeContextCurrent(m_window);
 
-                // Initialize opengl using glad
+                // Initialize OpenGL using glad
                 if(!gladLoadGL())
                 {
                         logError("Game::init() failed, glfwCreateWindow failed!");
                         terminate();
-                        return;
+                        return 1;
                 }
 
                 // Intialize renderer
                 if(m_renderer.init() != 0)
                 {
                         terminate();
-                        return;
+                        return 1;
                 }
 
+                // Create and initialize start scene
+                m_currScene = std::make_unique<GameScene>();
+                if(m_currScene->init() != 0)
+                {
+                        logError("Game::init() failed, initialization of first game scene failed!");
+                        terminate();
+                        return 1;
+                }
 
-                // TODO: Initialize other stuff..
+                return 0;
         }
 
 
@@ -86,8 +94,12 @@ namespace mc2d {
                 if(m_gameState == GameState::UNINITIALIZED)
                         return;
 
-                // TODO: Terminate other stuff...
-     
+                if(m_currScene != nullptr)                      // Terminate the current scene if any
+                {
+                        m_currScene->terminate();
+                        m_currScene = nullptr;
+                }
+
                 m_renderer.terminate();
 
                 if(m_window != NULL)                            // If window creation was successfull then glfw was initialized correctly
@@ -110,18 +122,6 @@ namespace mc2d {
                         return;
                 }
 
-                printHelp();
-                m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
-
-                // TODO: Move this somewhere else =====
-                Sprite playerSprite;
-                if(!playerSprite.load("../resources/textures/player/steveHead.png"))
-                {
-                        logError("Game::run() failed, cannot load player sprite!");
-                        m_gameState = GameState::QUITTED;
-                        return;
-                }//====================================
-
                 std::chrono::high_resolution_clock::time_point lastFrameTime = std::chrono::high_resolution_clock::now();
                 std::chrono::high_resolution_clock::time_point currFrameTime;
                 std::chrono::duration<float, std::milli> deltaTime;
@@ -133,24 +133,18 @@ namespace mc2d {
                         deltaTime = currFrameTime - lastFrameTime;
                         lastFrameTime = currFrameTime;
 
-                        // Update world
-                        m_gameWorld.update(deltaTime.count());
-
-                        // TODO: this works for gameplay but triggers recomputation of all the vertices for all the visible blocks,
-                        // doing this each frame seems a little overkill...
-                        m_camera.centerOnPoint(m_gameWorld.getPlayer().getPos());
-
-                        // Render game
                         m_renderer.clearScreen();
-                        m_renderer.renderWorld(m_gameWorld, m_camera, m_optimizedDraw);
-                        m_renderer.renderSprite(playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(0.5f), 0.0f, m_camera);
+
+                        if(m_currScene != nullptr)
+                        {
+                                m_currScene->update(*this, deltaTime.count());
+                                m_currScene->render(*this, m_renderer);
+                        }
 
                         // Poll events and swap buffers
                         glfwPollEvents();
                         glfwSwapBuffers(m_window);
                 }
-
-                playerSprite.unload();
 
                 m_gameState = GameState::QUITTED;
         }
@@ -185,115 +179,8 @@ namespace mc2d {
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
 
-                switch(key)
-                {
-                        // Debug code to generate a new random world when G is pressed
-                        case GLFW_KEY_G:
-                                if(action == GLFW_PRESS)
-                                        game->m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
-                                break;
-
-                        // Debug code to generate flat chunk when F is pressed
-                        case GLFW_KEY_F:
-                                if(action == GLFW_PRESS)
-                                        game->m_gameWorld = WorldGenerator::generateFlatWorld(3);
-                                break;
-
-                        // Change cursor block type to the previous one
-                        case GLFW_KEY_1:
-                                if(action == GLFW_PRESS)
-                                        if(game->m_cursorBlockType != BlockType::GRASS)
-                                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType - 1);
-                                break;
-
-                        // Change cursor block type to the next one
-                        case GLFW_KEY_2:
-                                if(action == GLFW_PRESS)
-                                        if(game->m_cursorBlockType != BlockType::AIR)
-                                                game->m_cursorBlockType = (BlockType) ( (uint8_t) game->m_cursorBlockType + 1);
-                                break;
-
-                        // Switch between solid and wireframe rendering
-                        case GLFW_KEY_W:
-                                if(action == GLFW_PRESS)
-                                {
-                                        static bool isWireframe = false;
-
-                                        isWireframe = !isWireframe;
-                                        isWireframe == true ? glPolygonMode(GL_FRONT_AND_BACK, GL_LINE) : glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                                }
-                                break;
-
-                        // Switch between optimized and basic world rendering (TODO: Remove this when testing on renderer will be over)
-                        case GLFW_KEY_O:
-                                if(action == GLFW_PRESS)
-                                {
-                                        game->m_optimizedDraw = !game->m_optimizedDraw;
-                                        logInfo("Switched to %s world rendering", game->m_optimizedDraw == true ? "optimized" : "basic");
-                                        game->m_gameWorld.setHasChanged(true);          // Say that world has change to force the recomputation of vertices
-                                }
-                                break;
-
-                        // Print controls list in console
-                        case GLFW_KEY_H:
-                                if(action == GLFW_PRESS)
-                                        game->printHelp();
-                                break;
-
-                        // Print game details in console
-                        case GLFW_KEY_F1:
-                                if(action == GLFW_PRESS)
-                                {
-                                        logWarn("Game Info:");
-                                        logInfo("       - camera pos: (%f, %f)", game->m_camera.getPos().x, game->m_camera.getPos().y);
-                                        logInfo("       - camera size: (%f, %f)", game->m_camera.getWidth(), game->m_camera.getHeight());
-                                        logInfo("       - player pos: (%f, %f)", game->m_gameWorld.getPlayer().getPos().x, game->m_gameWorld.getPlayer().getPos().y);
-
-                                        Chunk* playerChunk = game->m_gameWorld.getPlayerChunk();
-                                        logInfo("       - id of the current chunk: %d", playerChunk == nullptr ? 0 : playerChunk->id);
-                                        logInfo("       - current chunk biome: %s\n", playerChunk == nullptr ? "unknown" : Biome::getBiomeProperties(playerChunk->biome).name.c_str());
-                                }
-                                break;
-
-                        // Player movement
-                        case GLFW_KEY_LEFT:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(-80.0f, 0.0f, 0.0f));
-                                break;
-
-                        case GLFW_KEY_RIGHT:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(80.0f, 0.0f, 0.0f));
-                                break;
-
-                        case GLFW_KEY_UP:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, 80.0f, 0.0f));
-                                break;
-
-                        case GLFW_KEY_DOWN:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        game->m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, -80.0f, 0.0f));
-                                break;
-
-                        // Camera resize
-                        case GLFW_KEY_KP_ADD:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                {
-                                        game->m_camera.setWidth(game->m_camera.getWidth() - 1);
-                                        game->m_camera.setHeight(game->m_camera.getHeight() - 1);
-                                }
-                                break;
-
-                        case GLFW_KEY_KP_SUBTRACT:
-                                if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                {
-                                        game->m_camera.setWidth(game->m_camera.getWidth() + 1);
-                                        game->m_camera.setHeight(game->m_camera.getHeight() + 1);
-                                }
-                                break;
-                }
-
+                if(game->m_currScene != nullptr)
+                        game->m_currScene->onKeyEvent(*game, wnd, key, scancode, action, mods);
         }
         
 
@@ -302,62 +189,12 @@ namespace mc2d {
         // @button: the mouse button on which the event has hapened
         // @action: specify the state of the button (pressed, released, hold)
         // @modifiers: state of modifiers keys (alt, shift, ...)
-        void Game::onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int modifiers)
+        void Game::onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int mods)
         {
                 Game* game = static_cast<Game*>( glfwGetWindowUserPointer(wnd) );
                 
-                // On left mouse click remove a block from the current chunk
-                if(btn == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-                {
-                        double mouseX, mouseY;
-                        glfwGetCursorPos(wnd, &mouseX, &mouseY);
-
-                        // Convert window coordinates into world coordinates
-                        glm::vec2 blockCoord = game->m_camera.windowToWorldCoord((float) mouseX, (float) mouseY,
-                                        (float) game->m_settings.windowWidth, (float) game->m_settings.windowHeight);
-
-                        game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, BlockType::AIR);
-                }
-
-                // On right mouse click add a block in the current chunk
-                if(btn == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-                {
-                        double mouseX, mouseY;
-                        glfwGetCursorPos(wnd, &mouseX, &mouseY);
-
-                        // Convert window coordinates into world coordinates
-                        glm::vec2 blockCoord = game->m_camera.windowToWorldCoord((float) mouseX, (float) mouseY,
-                                        (float) game->m_settings.windowWidth, (float) game->m_settings.windowHeight);
-
-                        game->m_gameWorld.setBlock(blockCoord.x, blockCoord.y, game->m_cursorBlockType);
-                }
-        }
-
-
-        // Prints some info about the game controls in the console
-        void Game::printHelp()
-        {
-                logWarn("Available controls:");
-                logInfo("Chunk controls:");
-                logInfo("       - press G to generate a random chunck");
-                logInfo("       - press F to generate a flat world chunk");
-
-                logInfo("Rendering controls:");
-                logInfo("       - press W to switch between solid and wireframe rendering");
-                logInfo("       - press O to switch between optimized and basic world rendering");
-                
-                logInfo("Block controls:");
-                logInfo("       - left mouse click to delete a block");
-                logInfo("       - right mouse click to place a block");
-                logInfo("       - press 1 and 2 to change the block type that will be placed");
-
-                logInfo("Camera controls:");
-                logInfo("       - use arrows to move the camera around");
-                logInfo("       - use keypad + and keypad - to change camera size");
-
-                logInfo("Other controls:");
-                logInfo("       - press H to show this controls list");
-                logInfo("       - press F1 to show some game info\n");
+                if(game->m_currScene != nullptr)
+                        game->m_currScene->onMouseButtonEvent(*game, wnd, btn, action, mods);
         }
 
 }

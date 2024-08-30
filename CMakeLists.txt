@@ -16,6 +16,8 @@ set (SRCS
         src/world/gameWorld.cpp
         src/world/worldGenerator.cpp
 
+        src/scene/menuScene.cpp
+        src/scene/gameScene.cpp
         src/entity.cpp
 
         src/graphics/shader.cpp

@@ -5,17 +5,19 @@
 #define GAME_H
 
 #include <string>
-#include <ctime>
+#include <memory>
 #include <chrono>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
 #include "logging.hpp"
-#include "world/gameWorld.hpp"
-#include "world/worldGenerator.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/camera.hpp"
+
+#include "scene/scene.hpp"
+#include "scene/menuScene.hpp"
+#include "scene/gameScene.hpp"
 
 namespace mc2d {
 
@@ -31,9 +33,11 @@ namespace mc2d {
                 Game();
                 ~Game();
 
-                void    init(const GameSettings& settings);
-                void    terminate();
-                void    run();
+                int                     init(const GameSettings& settings);
+                void                    terminate();
+                void                    run();
+
+                inline GameSettings&    getSettings()           { return m_settings; }
 
         private:
 
@@ -48,20 +52,14 @@ namespace mc2d {
 
                 static void     onWindowResize(GLFWwindow* wnd, int width, int height);
                 static void     onKeyEvent(GLFWwindow* wnd, int key, int scancode, int action, int mods);
-                static void     onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int modifiers);
-                void            printHelp();
+                static void     onMouseButtonEvent(GLFWwindow* wnd, int btn, int action, int mods);
 
+                GameState               m_gameState;                    // The current state of the game
+                GameSettings            m_settings;                     // The game settings
+                GLFWwindow*             m_window;                       // Game's main window
+                Renderer                m_renderer;
 
-                GameState       m_gameState;                    // The current state of the game
-                GameSettings    m_settings;                     // The game settings
-                GLFWwindow*     m_window;                       // Game's main window
-                Renderer        m_renderer;
-
-                Camera          m_camera;
-                GameWorld       m_gameWorld;
-        
-                bool            m_optimizedDraw;        // TODO: remove me when testing is over
-                BlockType       m_cursorBlockType;      // Which type of block will be placed in the world when right mouse is clicked
+                std::unique_ptr<Scene>  m_currScene;                    // The scene currently active 
         };
 
 }
