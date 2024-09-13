@@ -172,7 +172,7 @@ namespace mc2d {
                 size_t blocksNum = 0;                                           // Counter to keep track of the blocks for which vertices have been generated
 
                 // Step 1] Determine all the chunks that are covered by the camera
-                std::vector<Chunk const*> intersectedChunks = camera.getVisibleChunks(world);
+                std::vector<Chunk const*> intersectedChunks = world.getVisibleChunks(camera);
                 if(intersectedChunks.size() == 0)
                         return 0;
 
@@ -277,7 +277,7 @@ namespace mc2d {
                 size_t blocksNum = 0;                                           // Counter to keep track of the blocks for which vertices have been generated
 
                 // Step 1] Determine all the chunks that are covered by the camera
-                std::vector<Chunk const*> intersectedChunks = camera.getVisibleChunks(world);
+                std::vector<Chunk const*> intersectedChunks = world.getVisibleChunks(camera);
                 if(intersectedChunks.size() == 0)
                         return 0;
 

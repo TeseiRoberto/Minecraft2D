@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "logging.hpp"
-#include "utility.hpp"
 #include "world/gameWorld.hpp"
 
 namespace mc2d {
@@ -35,12 +34,10 @@ namespace mc2d {
                 inline uint8_t          getHeight() const                       { return m_height; }
                 inline bool             hasChanged() const                      { return m_hasChanged; }
 
-                void                    centerOnPoint(const glm::vec3& point);
-
                 glm::vec2               windowToWorldCoord(float x, float y, float windowWidth, float windowHeight) const;
-                std::vector<Chunk const*> getVisibleChunks(const GameWorld& world) const;
 
                 glm::mat4               getViewMatrix() const;
+                void                    centerOnPoint(const glm::vec3& point);
                 void                    updatePos(float x, float y)     { m_pos.x += x; m_pos.y += y; m_hasChanged = true; }
         
         private:

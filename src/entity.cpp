@@ -1,5 +1,6 @@
 
 #include "entity.hpp"
+#include "world/gameWorld.hpp"
 #include "logging.hpp"
 
 namespace mc2d {

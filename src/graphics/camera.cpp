@@ -45,16 +45,6 @@ namespace mc2d {
         }
 
 
-        // Sets camera position so that the given point is at the center of the camera
-        // @point: point on which camera will be centered
-        void Camera::centerOnPoint(const glm::vec3& point)
-        {
-                m_pos.x = point.x - ((float) m_width / 2.0f);
-                m_pos.y = point.y + ((float) m_height / 2.0f);
-                m_hasChanged = true;
-        }
-
-
         // Converts coordinates from window space to world space
         // @x: x coordinate in window space
         // @y: y coordinate in window space
@@ -79,19 +69,13 @@ namespace mc2d {
         }
 
 
-        // Utility function used to determine all the chunks of the given world that are visible from this camera
-        // @world: the world that contains the chunks
-        std::vector<Chunk const*> Camera::getVisibleChunks(const GameWorld& world) const
+        // Sets camera position so that the given point is at the center of the camera
+        // @point: point on which camera will be centered
+        void Camera::centerOnPoint(const glm::vec3& point)
         {
-                std::vector<const Chunk*> intersectedChunks;
-                for(auto& chunk : world.getLoadedChunks())
-                {
-                        if(doesRectsIntersect(m_pos.x, m_pos.y, (float) m_width, (float) m_height,
-                                                chunk.getPos().x, chunk.getPos().y, (float) Chunk::width, (float) Chunk::height))
-                                intersectedChunks.push_back(&chunk);
-                }
-
-                return intersectedChunks;
+                m_pos.x = point.x - ((float) m_width / 2.0f);
+                m_pos.y = point.y + ((float) m_height / 2.0f);
+                m_hasChanged = true;
         }
 
 }

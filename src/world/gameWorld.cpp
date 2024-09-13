@@ -1,29 +1,39 @@
 
 #include "gameWorld.hpp"
 #include "worldGenerator.hpp"
+#include "graphics/camera.hpp"
 
 namespace mc2d {
 
 
-        // GameWorld constructor, creates a single uninitialized chunk
-        GameWorld::GameWorld() : m_hasChanged(true), m_player(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER)
-        {
-                initializeDummyWorld();
-        }
+        // GameWorld constructor, creates a zero intialized world
+        GameWorld::GameWorld() : m_hasChanged(false), m_worldSeed(0), m_loadedChunks({}),
+                m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
+        {}
 
 
         // Creates a game world that contains the given chunks
-        GameWorld::GameWorld(std::vector<Chunk>&& chunks) : m_hasChanged(true), m_player(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER)
+        // @chunks: chunks that makes up the world
+        // @seed: seed that will be used to generate new chunks when needed
+        GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed) : m_hasChanged(true), m_worldSeed(seed),
+                m_loadedChunks({}), m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
         {
-                if(chunks.size() != 0)
+                if(chunks.size() == 0)
                 {
-                        size_t playerChunkIndex = chunks.size() / 2;
-                        m_loadedChunks = std::move(chunks);
-
-                        // TODO: Compute player pos in the chunk
+                        const int defaultNumOfChunks = 3;
+                        *this = WorldGenerator::generateRandomWorld(seed, defaultNumOfChunks);
+                        logWarn("GameWorld::GameWorld() failed, given chunks list is empty, a random world has been created!");
                 } else {
-                        logWarn("GameWorld::GameWorld() failed, given chunks list is empty, a dummy world has been created!");
-                        initializeDummyWorld();
+
+                        int id = -1 * (chunks.size() / 2);      
+                        for(auto& c : chunks)                   // Assign ids to chunks so that they are all unique and ordered
+                        {
+                                c.id = id;
+                                m_loadedChunks.insert( { id, std::move(c) } );
+                                ++id;
+                        }
+
+                        // TODO: Calculate player spawn position
                 }
         }
 
@@ -31,42 +41,35 @@ namespace mc2d {
         // Move assignement operator
         GameWorld& GameWorld::operator = (GameWorld&& world)
         {
-                m_loadedChunks = std::move(world.m_loadedChunks);
                 m_hasChanged = true;
+                m_worldSeed = world.m_worldSeed;
+                m_loadedChunks = std::move(world.m_loadedChunks);
+                m_players = std::move(world.m_players);
 
                 return *this;
-        }
-
-
-        // Attempts to initialize a game world from the data contained in the specified file
-        // @filepath: path to the file that contains the world data
-        // @returns: true if world is loaded correctly, false otherwise
-        bool GameWorld::loadFromFile(const std::string& filepath)
-        {
-                // TODO: Add implementation...
-                return false;
-        }
-
-
-        // Saves the world data to the given filepath
-        // @filepath: path to the file in which the world data will be saved
-        // @returns: true if world is saved correctly, false otherwise
-        bool GameWorld::saveToFile(const std::string& filepath)
-        {
-                // TODO: Add implementation...
-                return false;
         }
 
 
         // Updates all the entities contained in the chunks currently loaded
         void GameWorld::update(float deltaTime)
         {
-                m_player.update(deltaTime);
-
-                for(auto& c : m_loadedChunks)
+                bool needToRecomputeChunks = false;
+                for(auto& p : m_players)                                // Update all players in the world
                 {
-                        for(auto& entity : c.entities)
-                                entity.update(deltaTime);
+                        int prevChunkId = getEntityChunkId(p);
+                        p.update(deltaTime);
+
+                        if(getEntityChunkId(p) != prevChunkId)          // Check if a transition between chunks has occurred
+                                needToRecomputeChunks = true;           // If so then we may need to load/unload some chunks
+                }
+
+                if(needToRecomputeChunks)                               // Load/unload chunks if needed
+                        recomputeLoadedChunks();
+
+                for(auto& c : m_loadedChunks)                           // Update entities in all loaded chunks
+                {
+                        for(auto& e : c.second.entities)
+                                e.update(deltaTime);
                 }
         }
 
@@ -79,24 +82,24 @@ namespace mc2d {
         {
                 if(y > ((float) Chunk::height * BLOCK_HEIGHT) || y < 0.0f)
                         return;
+        
+                int searchedChunkId = std::floor(x / (float) Chunk::width);
+                auto c = m_loadedChunks.find(searchedChunkId);
 
-                for(auto& c : m_loadedChunks)
+                if(c == m_loadedChunks.end())
                 {
-                        if(x > c.getPos().x && x < c.getPos().x + ((float)Chunk::width * BLOCK_WIDTH) )
-                        {
-                                // Compute indexes relative to the blocks array of the chunk
-                                size_t xIndex = (size_t) std::floor(x - c.getPos().x);
-                                size_t yIndex = (size_t) std::floor(c.getPos().y - y);
-                                
-                                c.blocks[(yIndex * Chunk::width) + xIndex] = newBlock;
-                                m_hasChanged = true;
-                                return;
-                        }
+                        // NOTE: This method works only on the loaded chunks so it is not
+                        // possible to set a block in a chunk that is not currently loaded in memory
+                        logWarn("GameWorld::setBlock() failed, trying to set a block in a chunk that is not currently loaded in memory!");
+                        return;
                 }
 
-                // TODO: For now this method works only on the loaded chunks so it is not
-                // possible to set a block in a chunk that is not currently loaded in memory
-                logWarn("GameWorld::setBlock() failed, trying to set a block in a chunk that is not currently loaded in memory!");
+                // Compute indexes relative to the blocks array of the chunk
+                size_t xIndex = (size_t) std::floor(x - c->second.getPos().x);
+                size_t yIndex = (size_t) std::floor(c->second.getPos().y - y);
+                
+                c->second.blocks[(yIndex * Chunk::width) + xIndex] = newBlock;
+                m_hasChanged = true;
         }
 
 
@@ -108,79 +111,134 @@ namespace mc2d {
                 if(y > ((float) Chunk::height * BLOCK_HEIGHT) || y < 0)
                         return BlockType::AIR;
 
+                int searchedChunkId = std::floor(x / (float) Chunk::width);
+                auto c = m_loadedChunks.find(searchedChunkId);
+
+                if(c == m_loadedChunks.end())
+                {
+                        // Note: This method works only on the loaded chunks so it is not
+                        // possible to get a block in a chunk that is not currently loaded in memory
+                        logWarn("GameWorld::getBlock() failed, trying to get a block in a chunk that is not currently loaded in memory! Air will be returned.");
+                        return BlockType::AIR;
+                }
+
+                // Compute indexes relative to the blocks array of the chunk
+                size_t xIndex = (size_t) std::floor(x - c->second.getPos().x);
+                size_t yIndex = (size_t) std::floor(c->second.getPos().y - y);
+                
+                return c->second.blocks[(yIndex * Chunk::width) + xIndex];
+        }
+
+
+        // Attempts to find the chunk that contains the given entity
+        // @e: the entity for which we want to find the chunk
+        // @returns: on success a pointer to a chunk, nullptr otherwise
+        Chunk* GameWorld::getEntityChunk(const Entity& e)
+        {
+                auto c = m_loadedChunks.find(getEntityChunkId(e));
+                return c == m_loadedChunks.end() ? nullptr : &(c->second);
+        }
+
+
+        // Utility function used to determine all the loaded chunks that are visible from the given camera
+        // @camera: defines the point of view of the world
+        std::vector<Chunk const*> GameWorld::getVisibleChunks(const Camera& camera) const
+        {
+                std::vector<const Chunk*> intersectedChunks;
                 for(auto& c : m_loadedChunks)
                 {
-                        if(x > c.getPos().x && x < c.getPos().x + ((float)Chunk::width * BLOCK_WIDTH) )
-                        {
-                                // Compute indexes relative to the blocks array of the chunk
-                                size_t xIndex = (size_t) std::floor(x - c.getPos().x);
-                                size_t yIndex = (size_t) std::floor(c.getPos().y - y);
-                                
-                                return c.blocks[(yIndex * Chunk::width) + xIndex];
-                        }
+                        if(doesRectsIntersect(camera.getPos().x, camera.getPos().y, (float) camera.getWidth(), (float) camera.getHeight(),
+                                                c.second.getPos().x, c.second.getPos().y, (float) Chunk::width, (float) Chunk::height))
+                                intersectedChunks.push_back( &(c.second) );
                 }
 
-                // TODO: For now this method works only on the loaded chunks so it is not
-                // possible to get a block in a chunk that is not currently loaded in memory
-                logWarn("GameWorld::getBlock() failed, trying to get a block in a chunk that is not currently loaded in memory! Air will be returned.");
-                return BlockType::AIR;
+                return intersectedChunks;
         }
 
 
-        // Adds the given chunk to the list of loaded chunks for this world
-        void GameWorld::appendChunk(Chunk&& newChunk)
+        // Loads/unloads chunks according to the positions of the players in the game world
+        void GameWorld::recomputeLoadedChunks()
         {
-                for(const auto& c : m_loadedChunks)
+                // Maximum value of distance (squared) between a player and a chunk, a chunk will stay in memory until
+                // there is at least one player that has a distance smaller than this value
+                const float maxDistanceSquared = (Chunk::width + Chunk::width / 2.0f) * (Chunk::width + Chunk::width / 2.0f);
+
+                // Unload all chunks that are far away from players
+                auto c = m_loadedChunks.begin();
+                while(c != m_loadedChunks.end())                
                 {
-                        if(c.id == newChunk.id)
+                        bool unload = true;
+                        float chunkPos = c->second.getPos().x + ((float) Chunk::width / 2.0f);
+
+                        for(auto& p : m_players)
                         {
-                                logWarn("GameWorld::appendChunk() failed, trying to append a chunk with an id that is alredy in use by another chunk!");
-                                return;
+                                if( (p.getPos().x - chunkPos) * (p.getPos().x - chunkPos) < maxDistanceSquared )
+                                {
+                                        unload = false;
+                                        break;
+                                }
                         }
-                }
 
-                m_loadedChunks.push_back(std::move(newChunk));
-                m_hasChanged = true;
-        }
-
-
-        // Unloads the chunk with the given id from this world (if it is currently loaded)
-        void GameWorld::removeChunk(int id)
-        {
-                for(auto it = m_loadedChunks.begin(); it != m_loadedChunks.end(); ++it)
-                {
-                        if(it->id == id)
+                        if(unload)
                         {
-                                m_loadedChunks.erase(it);
-                                m_hasChanged = true;
-                                return;
+                                c = unloadChunk(c);
+                                continue;
                         }
+
+                        ++c;
                 }
-        }
 
-
-        // Returns a pointer to the chunk that contains the player, nullptr if such chunk cannot be determined
-        Chunk* GameWorld::getPlayerChunk() 
-        {
-                for(Chunk& c : m_loadedChunks)
+                // Load all chunks near players (for each player the chunks
+                // adjacent to the one in which the player currently is must be loaded)
+                for(auto& p : m_players)
                 {
-                        if(c.getPos().x <= m_player.getPos().x && c.getPos().x + (float) Chunk::width > m_player.getPos().x)
-                                return &c;
+                        int playerChunkId = getEntityChunkId(p);
+                        if(m_loadedChunks.find(playerChunkId - 1) == m_loadedChunks.end())
+                                loadChunk(playerChunkId - 1);
+
+                        if(m_loadedChunks.find(playerChunkId + 1) == m_loadedChunks.end())
+                                loadChunk(playerChunkId + 1);
                 }
-
-                return nullptr;
         }
 
 
-        // Initializes game world so that it contains only one flat chunk
-        void GameWorld::initializeDummyWorld()
+        // Loads the chunk with given id and adds it to the loaded chunks, the chunk gets loaded from file system if an 
+        // associated chunk file exists, it is generated from scratch otherwise.
+        // If a chunk with the given id is already loaded in the world then nothing happens.
+        // @id: id associated to the chunk that needs to be loaded
+        void GameWorld::loadChunk(int id)
         {
-                Chunk c = WorldGenerator::generateFlatChunk();
-                c.id = 0;
+                if(m_loadedChunks.find(id) != m_loadedChunks.end())
+                        return;
 
-                m_loadedChunks.push_back(std::move(c));
-                // TODO: Compute player position
+                // TODO: Load chunk data from file, if file does not exists then generate a new random chunk
+                // WorldLoader::loadChunk(id);
+                
+                logWarn("GameWorld::loadChunk() called, loading chunk %d", id);
+
+                // For now I'm simply generating a new chunk from scratch
+                Chunk c = WorldGenerator::generateRandomChunk(m_worldSeed + id);
+                c.id = id;
+                m_loadedChunks.insert( { id, std::move(c) } );
         }
+
+
+        // Unloads the given chunk (saves it to a file and removes it from the currently loaded ones)
+        // @c: iterator pointing to the chunk that must be unloaded
+        // @returns: iterator pointing to the chunk after the given one
+        std::map<int, Chunk>::iterator GameWorld::unloadChunk(std::map<int, Chunk>::iterator& c)
+        {
+                if(c == m_loadedChunks.end())
+                        return m_loadedChunks.end();
+
+                logWarn("GameWorld::unloadChunk() called, unloading chunk %d", c->second.id);
+
+                // TODO: Save chunk data into a file
+                // WorldLoader::saveChunk(c->second);
+
+                return m_loadedChunks.erase(c);
+        }
+
 
 }
 

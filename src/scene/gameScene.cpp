@@ -5,7 +5,7 @@ namespace mc2d {
 
 
         GameScene::GameScene() : m_playerSprite(Sprite()), m_playerCamera(Camera(0.0f, 18.0f, 1.0f, 18, 18)),
-                m_gameWorld(GameWorld()), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
+                m_gameWorld(GameWorld()), m_currPlayerId(0), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
 
@@ -78,7 +78,7 @@ namespace mc2d {
 
                 // TODO: this works for gameplay but triggers recomputation of all the vertices for all the visible blocks,
                 // doing this each frame seems a little overkill...
-                m_playerCamera.centerOnPoint(m_gameWorld.getPlayer().getPos());
+                m_playerCamera.centerOnPoint(m_gameWorld.getPlayers()[m_currPlayerId].getPos());
         }
 
 
@@ -94,7 +94,9 @@ namespace mc2d {
                 }
 
                 m_worldRenderer.render(m_gameWorld, m_playerCamera, m_optimizedDraw);
-                renderer.renderSprite(m_playerSprite, m_gameWorld.getPlayer().getPos(), glm::vec3(0.5f), 0.0f, m_playerCamera);
+
+                for(auto& p : m_gameWorld.getPlayers()) // Draw heads of all players in the game world
+                        renderer.renderSprite(m_playerSprite, p.getPos(), glm::vec3(0.5f), 0.0f, m_playerCamera);
         }
 
 
@@ -184,33 +186,42 @@ namespace mc2d {
                                         logWarn("Game Info:");
                                         logInfo("       - camera pos: (%f, %f)", m_playerCamera.getPos().x, m_playerCamera.getPos().y);
                                         logInfo("       - camera size: (%f, %f)", m_playerCamera.getWidth(), m_playerCamera.getHeight());
-                                        logInfo("       - player pos: (%f, %f)", m_gameWorld.getPlayer().getPos().x, m_gameWorld.getPlayer().getPos().y);
 
-                                        Chunk* playerChunk = m_gameWorld.getPlayerChunk();
-                                        logInfo("       - id of the current chunk: %d", playerChunk == nullptr ? 0 : playerChunk->id);
-                                        logInfo("       - current chunk biome: %s\n", playerChunk == nullptr ? "unknown" : Biome::getBiomeProperties(playerChunk->biome).name.c_str());
+                                        logInfo("");
+                                        logInfo("       ==========[ Players info ]==========");
+                                        std::vector<Entity>& players = m_gameWorld.getPlayers();
+                                        for(size_t i = 0; i < players.size(); ++i)
+                                                logInfo("       player %d] pos: (%f, %f), contained in chunk %d", i,
+                                                        players[i].getPos().x, players[i].getPos().y, m_gameWorld.getEntityChunkId(players[i]) );
+
+                                        logInfo("");
+                                        logInfo("       ==========[ Loaded chunks info ]==========");
+                                        for(const auto& c : m_gameWorld.getLoadedChunks())
+                                                logInfo("       chunk %d] biome: %s", c.second.id, Biome::getBiomeProperties(c.second.biome).name.c_str() );
+                                
+                                        logInfo("");
                                 }
                                 break;
 
                         // Player movement
                         case GLFW_KEY_LEFT:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        m_gameWorld.getPlayer().setAcceleration(glm::vec3(-80.0f, 0.0f, 0.0f));
+                                        m_gameWorld.getPlayers()[m_currPlayerId].setAcceleration(glm::vec3(-80.0f, 0.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_RIGHT:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        m_gameWorld.getPlayer().setAcceleration(glm::vec3(80.0f, 0.0f, 0.0f));
+                                        m_gameWorld.getPlayers()[m_currPlayerId].setAcceleration(glm::vec3(80.0f, 0.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_UP:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, 80.0f, 0.0f));
+                                        m_gameWorld.getPlayers()[m_currPlayerId].setAcceleration(glm::vec3(0.0f, 80.0f, 0.0f));
                                 break;
 
                         case GLFW_KEY_DOWN:
                                 if(action == GLFW_PRESS || action == GLFW_REPEAT)
-                                        m_gameWorld.getPlayer().setAcceleration(glm::vec3(0.0f, -80.0f, 0.0f));
+                                        m_gameWorld.getPlayers()[m_currPlayerId].setAcceleration(glm::vec3(0.0f, -80.0f, 0.0f));
                                 break;
 
                         // Camera resize
@@ -227,6 +238,32 @@ namespace mc2d {
                                 {
                                         m_playerCamera.setWidth(m_playerCamera.getWidth() + 1);
                                         m_playerCamera.setHeight(m_playerCamera.getHeight() + 1);
+                                }
+                                break;
+
+                        // Spawn new player in the game world
+                        case GLFW_KEY_P:
+                                if(action == GLFW_PRESS)
+                                        m_gameWorld.getPlayers().push_back( Entity(glm::vec3(0.0f), 100.0f, EntityType::PLAYER) );
+                                break;
+
+                        // Switch to the previous available player in the game world
+                        case GLFW_KEY_Z:
+                                if(action == GLFW_PRESS)
+                                {
+                                        size_t newPlayerId = (m_currPlayerId - 1) % m_gameWorld.getPlayers().size();
+                                        m_currPlayerId = newPlayerId;
+                                        logInfo("Switched to the player %lu", newPlayerId);
+                                }
+                                break;
+
+                        // Switch to the next available player in the game world
+                        case GLFW_KEY_X:
+                                if(action == GLFW_PRESS)
+                                {
+                                        size_t newPlayerId = (m_currPlayerId + 1) % m_gameWorld.getPlayers().size();
+                                        m_currPlayerId = newPlayerId;
+                                        logInfo("Switched to the player %lu", newPlayerId);
                                 }
                                 break;
                 }
@@ -292,9 +329,11 @@ namespace mc2d {
                 logInfo("       - right mouse click to place a block");
                 logInfo("       - press 1 and 2 to change the block type that will be placed");
 
-                logInfo("Camera controls:");
-                logInfo("       - use arrows to move the camera around");
+                logInfo("Player/camera controls:");
+                logInfo("       - use arrows to move the player around");
                 logInfo("       - use keypad + and keypad - to change camera size");
+                logInfo("       - use P to spawn another player")
+                logInfo("       - use Z and X to switch between players in the world");
 
                 logInfo("Other controls:");
                 logInfo("       - press Esc to go back to menu");

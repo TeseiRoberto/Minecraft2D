@@ -40,7 +40,7 @@ namespace mc2d {
                         chunks.push_back(std::move(c));
                 }
 
-                return GameWorld(std::move(chunks));
+                return GameWorld(std::move(chunks), seed);
         }
         
 
@@ -65,7 +65,7 @@ namespace mc2d {
                         chunks.push_back(std::move(c));
                 }
 
-                return GameWorld(std::move(chunks));
+                return GameWorld(std::move(chunks), 0);
         }
 
         

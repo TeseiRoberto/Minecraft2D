@@ -1,10 +1,10 @@
 
 // Contains definition of the GameWorld class and the Chunk struct.
 //
-// The GameWorld class has responsibility of managing chunks (loading, unloading, ...).
+// The GameWorld class has responsibility of managing chunks (loading, unloading, ...) and all the players in the game world.
 //
 // The Chunk struct is used to keep track of all the blocks that makes up a portion of the game world and all the entities
-// that are contained in it.
+// (aside from players) that are contained in it.
 //
 // The game world is structured as a sequence of chunks, the chunk in which the player spawn is the root chunk and
 // has the id 0; chunks to the left of the root chunk have negative ids while chunks to the right have positive ids.
@@ -16,12 +16,14 @@
 #define GAME_WORLD_H
 
 #include <vector>
+#include <map>
 #include <string>
 #include <cstdint>
 #include <cmath>
 #include <glm/vec2.hpp>
 
 #include "logging.hpp"
+#include "utility.hpp"
 #include "block.hpp"
 #include "entity.hpp"
 
@@ -29,6 +31,8 @@ namespace mc2d {
 
         enum class BiomeType : uint32_t;
         class WorldGenerator;
+        class Camera;
+
 
         struct Chunk {
                 static constexpr uint8_t width = 18;            // Width of the chunk measured in blocks, never set below 8!
@@ -49,13 +53,10 @@ namespace mc2d {
                 friend class WorldGenerator;
 
                 GameWorld();
-                GameWorld(std::vector<Chunk>&& chunks);
+                GameWorld(std::vector<Chunk>&& chunks, unsigned seed);
                 ~GameWorld() = default;
 
                 GameWorld&                              operator = (GameWorld&& world);
-
-                bool                                    loadFromFile(const std::string& filepath);
-                bool                                    saveToFile(const std::string& filepath);
 
                 void                                    update(float deltaTime);
 
@@ -65,21 +66,24 @@ namespace mc2d {
                 BlockType                               getBlock(float x, float y) const;
                 inline bool                             hasChanged() const                              { return m_hasChanged; }
 
-                void                                    appendChunk(Chunk&& newChunk);
-                void                                    removeChunk(int id);
-                inline const std::vector<Chunk>&        getLoadedChunks() const                         { return m_loadedChunks; }
-
-                inline Entity&                          getPlayer()                                     { return m_player; }
-                Chunk*                                  getPlayerChunk();
-
+                inline Entity&                          getMainPlayer()                                 { return m_players[0]; }
+                inline std::vector<Entity>&             getPlayers()                                    { return m_players; }
+                
+                const std::map<int, Chunk>&             getLoadedChunks() const                         { return m_loadedChunks; }
+                inline int                              getEntityChunkId(const Entity& e) const         { return std::floor(e.getPos().x / (float) Chunk::width); }
+                Chunk*                                  getEntityChunk(const Entity& e);
+                std::vector<const Chunk*>               getVisibleChunks(const Camera& camera) const;
 
         private:
-                void                    initializeDummyWorld();
+
+                void                                    recomputeLoadedChunks();
+                void                                    loadChunk(int id);
+                std::map<int, Chunk>::iterator          unloadChunk(std::map<int, Chunk>::iterator& c);
 
                 bool                    m_hasChanged;           // Flag used to indicate that one or more blocks have been added/removed from the world
-                std::vector<Chunk>      m_loadedChunks;
-        
-                Entity                  m_player;               // The main player
+                unsigned                m_worldSeed;            // Seed used during world generation
+                std::map<int, Chunk>    m_loadedChunks;         // Chunks currently in memory
+                std::vector<Entity>     m_players;              // Keeps track of all players in the game world
         };
 
 }

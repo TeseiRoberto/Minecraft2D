@@ -46,6 +46,7 @@ namespace mc2d {
                 Camera          m_playerCamera;         // Camera focused on player
                 GameWorld       m_gameWorld;
         
+                size_t          m_currPlayerId;         // Indicates which player in the game world we are currently controlling
                 bool            m_optimizedDraw;        // TODO: remove me when testing is over
                 BlockType       m_cursorBlockType;      // Which type of block will be placed in the world when right mouse is clicked
         };
