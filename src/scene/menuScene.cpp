@@ -17,7 +17,12 @@ namespace mc2d {
         {
                 // TODO: add implementation...
 
-                logInfo("Press any key to launch game scene");
+               
+                m_currScreen = MenuScreen::MAIN_MENU;
+
+                m_userChoice = -1;  // -1 means that user has not chosen yet
+                m_renderMenu = true;
+
                 m_isInit = true;
                 return 0;
         }
@@ -40,8 +45,38 @@ namespace mc2d {
         // @deltaTime: time passed from the last update (measured in milliseconds)
         void MenuScene::update(Game& game, float deltaTime)
         {
-                // TODO: add implementation...
-                //logWarn("MenuScene::update() called, but still lacks implementation");
+                // TODO: this is a temporary terminal based implementation
+                switch(m_currScreen)
+                {
+                        case MenuScreen::MAIN_MENU:
+
+                                switch(m_userChoice)
+                                {
+                                        case -1:        /*User has not chosen yet*/     break;
+                                        case 1:         onCreateNewGameSelected();      break;
+                                        case 2:         onLoadGameSaveSelected();       break;
+                                        case 3:         onSettingsSelected();           break;
+                                        default:        onInvalidOptionSelected();      break;
+                                }
+                                break;
+
+                        case MenuScreen::CREATE_NEW_GAME:
+                                // TODO: Add implementation...
+                                if(game.setScene(std::make_unique<GameScene>()))
+                                        return;
+                                break;
+
+                        case MenuScreen::LOAD_GAME_SAVE:
+                                switch(m_userChoice)
+                                {
+                                        case -1:        /*User has not chosen yet*/     break;
+                                        case 0:         onBackToMainMenuSelected();     break;
+                                        default:        onGameSaveSelected(game);       break;
+                                }
+                                break;
+
+                        case MenuScreen::SETTINGS:      onBackToMainMenuSelected();     break;
+                }
         }
 
 
@@ -50,8 +85,51 @@ namespace mc2d {
         // @renderer: the main game renderer
         void MenuScene::render(Game& game, Renderer& renderer)
         {
-                // TODO: add implementation...
-                //logWarn("MenuScene::render() called, but still lacks implementation");
+                // TODO: this is a temporary terminal based implementation, need to add GUI
+                if(m_renderMenu)
+                {
+                        switch(m_currScreen)
+                        {
+                                case MenuScreen::MAIN_MENU:
+                                        logInfo("");
+                                        logInfo("==========[ Minecraft 2D ] ==========");
+                                        logInfo("1] Create a new game save");
+                                        logInfo("2] Load a saved game");
+                                        logInfo("3] Settings");
+                                        logInfo("==> choose an option...");
+                                        break;
+
+                                case MenuScreen::CREATE_NEW_GAME:
+                                        // TODO: Add implementation...
+                                        logInfo("Launching new game!");
+                                        logInfo("======================================");
+                                        break;
+
+                                case MenuScreen::LOAD_GAME_SAVE:
+                                {
+
+                                        logInfo("");
+                                        logInfo("==========[ available game saves ] ==========");
+                                        
+                                        uint32_t i = 1;
+                                        for(const auto& entry : std::filesystem::directory_iterator(game.getGameDataDirectory()))
+                                                logInfo("%u] %s", i++, entry.path().c_str());
+
+                                        logInfo("");
+                                        logInfo("==> press 0 to go back or choose a game save...");
+                                }
+                                        break;
+
+                                case MenuScreen::SETTINGS:
+                                        // TODO: Add implementation...
+                                        logInfo("");
+                                        logInfo("==========[ Settings ] ==========");
+                                        logError("Settings are not available yet!");
+                                        break;
+                        }
+
+                        m_renderMenu = false;
+                }
         }
 
 
@@ -64,15 +142,9 @@ namespace mc2d {
         // @mods: the state of modifier keys
         void MenuScene::onKeyEvent(Game& game, GLFWwindow* wnd, int key, int scancode, int action, int mods)
         {
-                // On key press switch to the game scene
-                if(action == GLFW_PRESS)
-                {
-                        if(game.setScene(std::make_unique<GameScene>()))
-                        {
-                                logInfo("SWITCHING TO GAME SCENE!")
-                                return;
-                        }
-                }
+                // Check for key press of keys from 0 to 9 and convert those in range [0, 9]
+                if(action == GLFW_PRESS && key >= GLFW_KEY_0 && key <= GLFW_KEY_9)
+                        m_userChoice = key - GLFW_KEY_0;
         }
 
 
@@ -85,7 +157,72 @@ namespace mc2d {
         void MenuScene::onMouseButtonEvent(Game& game, GLFWwindow* wnd, int btn, int action, int modifiers)
         {
                 // TODO: add implementation...
-                logWarn("Mouse button event happend in MenuScene");
+        }
+
+
+        // Callback invoked when the player selects the "create new game" entry in the main menu
+        void MenuScene::onCreateNewGameSelected()
+        {
+                m_currScreen = MenuScreen::CREATE_NEW_GAME;
+                m_userChoice = -1;
+                m_renderMenu = true;
+        }
+
+
+        // Callback invoked when the player selects the "load game save" entry in the main menu
+        void MenuScene::onLoadGameSaveSelected()
+        {
+                m_currScreen = MenuScreen::LOAD_GAME_SAVE;
+                m_userChoice = -1;
+                m_renderMenu = true;
+        }
+        
+        
+        // Callback invoked when the player selects the "settings" entry in the main menu
+        void MenuScene::onSettingsSelected()
+        {
+                m_currScreen = MenuScreen::SETTINGS;
+                m_userChoice = -1;
+                m_renderMenu = true;
+        }
+
+
+        // Callback invoked when the player selects an invalid option
+        void MenuScene::onInvalidOptionSelected()
+        {
+                logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
+                m_userChoice = -1;
+        }
+        
+
+        // Callback invoked when the player selects the "back to main menu" entry
+        void MenuScene::onBackToMainMenuSelected()
+        {
+                m_currScreen = MenuScreen::MAIN_MENU;
+                m_userChoice = -1;
+                m_renderMenu = true;
+        }
+
+
+        // Callback invoked when the player selects a game save from the load game save menu
+        void MenuScene::onGameSaveSelected(Game& game)
+        {
+                uint32_t i = 1;
+                for(const auto& entry : std::filesystem::directory_iterator(game.getGameDataDirectory()))
+                {
+                        if(i++ == m_userChoice)
+                        {
+                                // TODO: Actually load the chosen game save
+                                logInfo("Loading game save: %s!", entry.path().c_str());
+                                logError("Loading of game saves is not implemented yet!");
+                                logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
+                                m_userChoice = -1;
+                                return;
+                        }
+                }
+
+               logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
+               m_userChoice = -1;
         }
 
 }

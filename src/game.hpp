@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <chrono>
+#include <filesystem>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
@@ -33,13 +34,14 @@ namespace mc2d {
                 Game();
                 ~Game();
 
-                int                     init(const GameSettings& settings);
-                void                    terminate();
-                void                    run();
+                int                             init(const GameSettings& settings);
+                void                            terminate();
+                void                            run();
 
-                bool                    setScene(std::unique_ptr<Scene>&& newScene);
+                bool                            setScene(std::unique_ptr<Scene>&& newScene);
 
-                inline GameSettings&    getSettings()           { return m_settings; }
+                inline GameSettings&            getSettings()                   { return m_settings; }
+                inline std::filesystem::path    getGameDataDirectory() const    { return m_gameDataDir; }
 
 
         private:
@@ -59,6 +61,7 @@ namespace mc2d {
 
                 GameState               m_gameState;                    // The current state of the game
                 GameSettings            m_settings;                     // The game settings
+                std::filesystem::path   m_gameDataDir;                  // Directory that contains all game data (settings and save games)
                 GLFWwindow*             m_window;                       // Game's main window
                 Renderer                m_renderer;
 
