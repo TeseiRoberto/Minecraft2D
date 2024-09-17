@@ -18,6 +18,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <filesystem>
 #include <cstdint>
 #include <cmath>
 #include <glm/vec2.hpp>
@@ -53,24 +54,27 @@ namespace mc2d {
                 friend class WorldGenerator;
 
                 GameWorld();
+                GameWorld(GameWorld& otherWorld);
                 GameWorld(std::vector<Chunk>&& chunks, unsigned seed);
                 ~GameWorld() = default;
 
-                GameWorld&                              operator = (GameWorld&& world);
+                GameWorld&                              operator = (GameWorld&& otherWorld);
 
                 void                                    update(float deltaTime);
 
                 void                                    setBlock(float x, float y, BlockType newBlock);
-                inline void                             setHasChanged(bool changed)                     { m_hasChanged = changed; }
+                inline void                             setHasChanged(bool changed)                             { m_hasChanged = changed; }
+                inline void                             setWorldSaveDirectory(std::filesystem::path path)       { m_pathToWorldDir = path; }
 
                 BlockType                               getBlock(float x, float y) const;
-                inline bool                             hasChanged() const                              { return m_hasChanged; }
+                inline bool                             hasChanged() const                                      { return m_hasChanged; }
+                inline std::filesystem::path            getWorldSaveDirectory() const                           { return m_pathToWorldDir; }
 
-                inline Entity&                          getMainPlayer()                                 { return m_players[0]; }
-                inline std::vector<Entity>&             getPlayers()                                    { return m_players; }
+                inline Entity&                          getMainPlayer()                                         { return m_players[0]; }
+                inline std::vector<Entity>&             getPlayers()                                            { return m_players; }
                 
-                const std::map<int, Chunk>&             getLoadedChunks() const                         { return m_loadedChunks; }
-                inline int                              getEntityChunkId(const Entity& e) const         { return std::floor(e.getPos().x / (float) Chunk::width); }
+                const std::map<int, Chunk>&             getLoadedChunks() const                                 { return m_loadedChunks; }
+                inline int                              getEntityChunkId(const Entity& e) const                 { return std::floor(e.getPos().x / (float) Chunk::width); }
                 Chunk*                                  getEntityChunk(const Entity& e);
                 std::vector<const Chunk*>               getVisibleChunks(const Camera& camera) const;
 
@@ -80,8 +84,10 @@ namespace mc2d {
                 void                                    loadChunk(int id);
                 std::map<int, Chunk>::iterator          unloadChunk(std::map<int, Chunk>::iterator& c);
 
+
                 bool                    m_hasChanged;           // Flag used to indicate that one or more blocks have been added/removed from the world
                 unsigned                m_worldSeed;            // Seed used during world generation
+                std::filesystem::path   m_pathToWorldDir;       // Path to the directory in which world data is stored
                 std::map<int, Chunk>    m_loadedChunks;         // Chunks currently in memory
                 std::vector<Entity>     m_players;              // Keeps track of all players in the game world
         };

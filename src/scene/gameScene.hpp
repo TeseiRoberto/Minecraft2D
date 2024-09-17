@@ -25,7 +25,7 @@ namespace mc2d {
 
         class GameScene : public Scene {
         public:
-                GameScene();
+                GameScene(GameWorld& gameWorld);
                 virtual ~GameScene();
 
                 virtual int     init();

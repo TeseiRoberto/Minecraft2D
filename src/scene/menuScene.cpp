@@ -18,7 +18,7 @@ namespace mc2d {
                 // TODO: add implementation...
 
                
-                m_currScreen = MenuScreen::MAIN_MENU;
+                m_currMenuState = MenuState::MAIN_MENU;
 
                 m_userChoice = -1;  // -1 means that user has not chosen yet
                 m_renderMenu = true;
@@ -46,36 +46,50 @@ namespace mc2d {
         void MenuScene::update(Game& game, float deltaTime)
         {
                 // TODO: this is a temporary terminal based implementation
-                switch(m_currScreen)
+                switch(m_currMenuState)
                 {
-                        case MenuScreen::MAIN_MENU:
+                        case MenuState::MAIN_MENU:
 
                                 switch(m_userChoice)
                                 {
                                         case -1:        /*User has not chosen yet*/     break;
-                                        case 1:         onCreateNewGameSelected();      break;
-                                        case 2:         onLoadGameSaveSelected();       break;
+                                        case 1:         onCreateNewWorldSelected();     break;
+                                        case 2:         onLoadWorldSelected();          break;
                                         case 3:         onSettingsSelected();           break;
                                         default:        onInvalidOptionSelected();      break;
                                 }
                                 break;
 
-                        case MenuScreen::CREATE_NEW_GAME:
-                                // TODO: Add implementation...
-                                if(game.setScene(std::make_unique<GameScene>()))
-                                        return;
-                                break;
+                        case MenuState::CREATE_WORLD_MENU:
+                        {
+                                // TODO: need to implement a menu for the player so that
+                                // he can set world properties (such as: world name, seed, ....).
+                                
+                                // Create path to the directory in which world data will be stored
+                                std::time_t currTime = std::time(nullptr);
 
-                        case MenuScreen::LOAD_GAME_SAVE:
+                                std::stringstream worldName;
+                                worldName << "World_" << std::put_time( std::localtime(&currTime), "%F %T" );
+                                std::filesystem::path worldDataPath = game.getGameDataDirectory().append(worldName.str());
+
+                                // Generate new random world and save it
+                                GameWorld newWorld = WorldGenerator::generateRandomWorld(currTime, 3);
+                                WorldLoader::saveWorld(worldDataPath, newWorld);
+
+                                if( game.setScene(std::make_unique<GameScene>(newWorld)) )
+                                        return;
+                        } break;
+                                
+                        case MenuState::LOAD_WORLD_MENU:
                                 switch(m_userChoice)
                                 {
                                         case -1:        /*User has not chosen yet*/     break;
                                         case 0:         onBackToMainMenuSelected();     break;
-                                        default:        onGameSaveSelected(game);       break;
+                                        default:        onWorldSelected(game);          break;
                                 }
                                 break;
 
-                        case MenuScreen::SETTINGS:      onBackToMainMenuSelected();     break;
+                        case MenuState::SETTINGS_MENU:  onBackToMainMenuSelected();     break;
                 }
         }
 
@@ -88,24 +102,24 @@ namespace mc2d {
                 // TODO: this is a temporary terminal based implementation, need to add GUI
                 if(m_renderMenu)
                 {
-                        switch(m_currScreen)
+                        switch(m_currMenuState)
                         {
-                                case MenuScreen::MAIN_MENU:
+                                case MenuState::MAIN_MENU:
                                         logInfo("");
                                         logInfo("==========[ Minecraft 2D ] ==========");
-                                        logInfo("1] Create a new game save");
-                                        logInfo("2] Load a saved game");
+                                        logInfo("1] Create a new game world");
+                                        logInfo("2] Load a saved game world");
                                         logInfo("3] Settings");
                                         logInfo("==> choose an option...");
                                         break;
 
-                                case MenuScreen::CREATE_NEW_GAME:
+                                case MenuState::CREATE_WORLD_MENU:
                                         // TODO: Add implementation...
                                         logInfo("Launching new game!");
                                         logInfo("======================================");
                                         break;
 
-                                case MenuScreen::LOAD_GAME_SAVE:
+                                case MenuState::LOAD_WORLD_MENU:
                                 {
 
                                         logInfo("");
@@ -120,7 +134,7 @@ namespace mc2d {
                                 }
                                         break;
 
-                                case MenuScreen::SETTINGS:
+                                case MenuState::SETTINGS_MENU:
                                         // TODO: Add implementation...
                                         logInfo("");
                                         logInfo("==========[ Settings ] ==========");
@@ -160,19 +174,19 @@ namespace mc2d {
         }
 
 
-        // Callback invoked when the player selects the "create new game" entry in the main menu
-        void MenuScene::onCreateNewGameSelected()
+        // Callback invoked when the player selects the "create new world" entry in the main menu
+        void MenuScene::onCreateNewWorldSelected()
         {
-                m_currScreen = MenuScreen::CREATE_NEW_GAME;
+                m_currMenuState = MenuState::CREATE_WORLD_MENU;
                 m_userChoice = -1;
                 m_renderMenu = true;
         }
 
 
-        // Callback invoked when the player selects the "load game save" entry in the main menu
-        void MenuScene::onLoadGameSaveSelected()
+        // Callback invoked when the player selects the "load game world" entry in the main menu
+        void MenuScene::onLoadWorldSelected()
         {
-                m_currScreen = MenuScreen::LOAD_GAME_SAVE;
+                m_currMenuState = MenuState::LOAD_WORLD_MENU;
                 m_userChoice = -1;
                 m_renderMenu = true;
         }
@@ -181,7 +195,7 @@ namespace mc2d {
         // Callback invoked when the player selects the "settings" entry in the main menu
         void MenuScene::onSettingsSelected()
         {
-                m_currScreen = MenuScreen::SETTINGS;
+                m_currMenuState = MenuState::SETTINGS_MENU;
                 m_userChoice = -1;
                 m_renderMenu = true;
         }
@@ -198,31 +212,36 @@ namespace mc2d {
         // Callback invoked when the player selects the "back to main menu" entry
         void MenuScene::onBackToMainMenuSelected()
         {
-                m_currScreen = MenuScreen::MAIN_MENU;
+                m_currMenuState = MenuState::MAIN_MENU;
                 m_userChoice = -1;
                 m_renderMenu = true;
         }
 
 
-        // Callback invoked when the player selects a game save from the load game save menu
-        void MenuScene::onGameSaveSelected(Game& game)
+        // Callback invoked when the player selects a game world from the load world menu
+        void MenuScene::onWorldSelected(Game& game)
         {
+                m_userChoice = -1;
                 uint32_t i = 1;
+
                 for(const auto& entry : std::filesystem::directory_iterator(game.getGameDataDirectory()))
                 {
                         if(i++ == m_userChoice)
                         {
-                                // TODO: Actually load the chosen game save
-                                logInfo("Loading game save: %s!", entry.path().c_str());
-                                logError("Loading of game saves is not implemented yet!");
-                                logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
-                                m_userChoice = -1;
-                                return;
+                                logInfo("Loading game world: \"%s\"!", entry.path().c_str());
+
+                                GameWorld world = WorldLoader::loadWorld(entry.path());
+                                if(game.setScene(std::make_unique<GameScene>(world)))
+                                {
+                                        return;
+                                } else {
+                                        logError("Cannot load game world: \"%s\", failed to switch to the game scene!", entry.path());
+                                        return;
+                                }
                         }
                 }
 
                logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
-               m_userChoice = -1;
         }
 
 }

@@ -9,6 +9,8 @@
 #include "logging.hpp"
 #include "game.hpp"
 #include "scene.hpp"
+#include "world/worldGenerator.hpp"
+#include "world/worldLoader.hpp"
 #include "graphics/renderer.hpp"
 
 // keep this include order (renderer.hpp includes glad.h which must be included before glfw)
@@ -34,21 +36,21 @@ namespace mc2d {
 
         private:
                 
-                void onCreateNewGameSelected();
-                void onLoadGameSaveSelected();
+                void onCreateNewWorldSelected();
+                void onLoadWorldSelected();
                 void onSettingsSelected();
                 void onInvalidOptionSelected();
                 void onBackToMainMenuSelected();
-                void onGameSaveSelected(Game& game);
+                void onWorldSelected(Game& game);
 
-                enum class MenuScreen {
-                        MAIN_MENU,                      // The main menu screen
-                        CREATE_NEW_GAME,                // Screen used to setup a new game save and launch the game
-                        LOAD_GAME_SAVE,                 // Screen used to load a game save
-                        SETTINGS                        // Screen to modify game settings
+                enum class MenuState {
+                        MAIN_MENU,                      // Main menu
+                        CREATE_WORLD_MENU,              // Mneu used to setup a new game world
+                        LOAD_WORLD_MENU,                // Menu used to load a previously saved game world
+                        SETTINGS_MENU                   // Menu used to modify game settings
                 };
 
-                MenuScreen      m_currScreen;
+                MenuState       m_currMenuState;
 
                 int             m_userChoice; // TODO: Remove this when a GUI menu will be implemented
                 bool            m_renderMenu; // TODO: Remove this when a GUI menu will be implemented

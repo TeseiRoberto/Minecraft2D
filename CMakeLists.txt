@@ -18,6 +18,7 @@ set (SRCS
         src/world/biome.cpp
         src/world/gameWorld.cpp
         src/world/worldGenerator.cpp
+        src/world/worldLoader.cpp
 
         src/scene/menuScene.cpp
         src/scene/gameScene.cpp

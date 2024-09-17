@@ -23,6 +23,10 @@
 namespace mc2d {
 
 
+        // Name of the directory in which all game data will be saved  (settings and game worlds)
+        constexpr const char* GAME_DATA_DIRECTORY = "minecraft2D_data";
+
+
         struct GameSettings {
                 uint32_t        windowWidth     = 720;          // The width of the game window
                 uint32_t        windowHeight    = 480;          // the height of the game window

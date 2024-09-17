@@ -7,15 +7,28 @@ namespace mc2d {
 
 
         // GameWorld constructor, creates a zero intialized world
-        GameWorld::GameWorld() : m_hasChanged(false), m_worldSeed(0), m_loadedChunks({}),
-                m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
+        GameWorld::GameWorld() :
+                m_hasChanged(false), m_worldSeed(0), m_pathToWorldDir(""),
+                m_loadedChunks({}), m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
         {}
+
+
+        // Copy contructor
+        GameWorld::GameWorld(GameWorld& otherWorld)
+        {
+                m_hasChanged = true;
+                m_worldSeed = otherWorld.m_worldSeed;
+                m_loadedChunks = otherWorld.m_loadedChunks;
+                m_players = otherWorld.m_players;
+                m_pathToWorldDir = "";
+        }
 
 
         // Creates a game world that contains the given chunks
         // @chunks: chunks that makes up the world
         // @seed: seed that will be used to generate new chunks when needed
-        GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed) : m_hasChanged(true), m_worldSeed(seed),
+        GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed) :
+                m_hasChanged(true), m_worldSeed(seed), m_pathToWorldDir(""),
                 m_loadedChunks({}), m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
         {
                 if(chunks.size() == 0)
@@ -39,12 +52,13 @@ namespace mc2d {
 
 
         // Move assignement operator
-        GameWorld& GameWorld::operator = (GameWorld&& world)
+        GameWorld& GameWorld::operator = (GameWorld&& otherWorld)
         {
                 m_hasChanged = true;
-                m_worldSeed = world.m_worldSeed;
-                m_loadedChunks = std::move(world.m_loadedChunks);
-                m_players = std::move(world.m_players);
+                m_worldSeed = otherWorld.m_worldSeed;
+                m_loadedChunks = std::move(otherWorld.m_loadedChunks);
+                m_players = std::move(otherWorld.m_players);
+                m_pathToWorldDir = otherWorld.m_pathToWorldDir;
 
                 return *this;
         }

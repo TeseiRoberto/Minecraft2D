@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_gameDataDir("minecraft2D_data"), m_window(NULL), m_currScene(nullptr)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_gameDataDir(GAME_DATA_DIRECTORY), m_window(NULL), m_currScene(nullptr)
         {}
 
 
