@@ -65,18 +65,14 @@ namespace mc2d {
                                 // TODO: need to implement a menu for the player so that
                                 // he can set world properties (such as: world name, seed, ....).
                                 
-                                // Create path to the directory in which world data will be stored
-                                std::time_t currTime = std::time(nullptr);
+                                // Generate a new random world and save it
+                                std::filesystem::path pathToWorldDir = game.getSettings().pathToGameData;
+                                pathToWorldDir.append(WorldLoader::createDummyWorldName());
 
-                                std::stringstream worldName;
-                                worldName << "World_" << std::put_time( std::localtime(&currTime), "%F %T" );
-                                std::filesystem::path worldDataPath = game.getGameDataDirectory().append(worldName.str());
+                                GameWorld newWorld = WorldGenerator::generateRandomWorld(std::time(nullptr), 3);
+                                WorldLoader::saveWorld(pathToWorldDir, newWorld);
 
-                                // Generate new random world and save it
-                                GameWorld newWorld = WorldGenerator::generateRandomWorld(currTime, 3);
-                                WorldLoader::saveWorld(worldDataPath, newWorld);
-
-                                if( game.setScene(std::make_unique<GameScene>(newWorld)) )
+                                if( game.setScene(std::make_unique<GameScene>( std::move(newWorld) )) )
                                         return;
                         } break;
                                 
@@ -126,7 +122,7 @@ namespace mc2d {
                                         logInfo("==========[ available game saves ] ==========");
                                         
                                         uint32_t i = 1;
-                                        for(const auto& entry : std::filesystem::directory_iterator(game.getGameDataDirectory()))
+                                        for(const auto& entry : std::filesystem::directory_iterator(game.getSettings().pathToGameData))
                                                 logInfo("%u] %s", i++, entry.path().c_str());
 
                                         logInfo("");
@@ -221,27 +217,28 @@ namespace mc2d {
         // Callback invoked when the player selects a game world from the load world menu
         void MenuScene::onWorldSelected(Game& game)
         {
-                m_userChoice = -1;
-                uint32_t i = 1;
+                int i = 1;
+                auto currIt = std::filesystem::directory_iterator(game.getSettings().pathToGameData);
+                auto endIt = std::filesystem::directory_iterator();
 
-                for(const auto& entry : std::filesystem::directory_iterator(game.getGameDataDirectory()))
+                while(i != m_userChoice && currIt != endIt)
+                        ++currIt;
+
+                if(currIt == endIt)
                 {
-                        if(i++ == m_userChoice)
-                        {
-                                logInfo("Loading game world: \"%s\"!", entry.path().c_str());
-
-                                GameWorld world = WorldLoader::loadWorld(entry.path());
-                                if(game.setScene(std::make_unique<GameScene>(world)))
-                                {
-                                        return;
-                                } else {
-                                        logError("Cannot load game world: \"%s\", failed to switch to the game scene!", entry.path());
-                                        return;
-                                }
-                        }
+                        logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
+                        m_userChoice = -1;
+                        return;
                 }
 
-               logInfo("%d is not valid, please choose a valid option ==>", m_userChoice);
+                m_userChoice = -1;
+                GameWorld world;
+                if(!WorldLoader::loadWorld(currIt->path(), world))
+                        return;
+                
+                if(!game.setScene(std::make_unique<GameScene>( std::move(world) )) )
+                        logError("Cannot load game world: \"%s\", failed to switch to the game scene!", currIt->path().c_str());
+                        return;
         }
 
 }

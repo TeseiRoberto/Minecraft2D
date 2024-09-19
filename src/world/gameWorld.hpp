@@ -32,6 +32,7 @@ namespace mc2d {
 
         enum class BiomeType : uint32_t;
         class WorldGenerator;
+        class WorldLoader;
         class Camera;
 
 
@@ -52,6 +53,7 @@ namespace mc2d {
         class GameWorld {
         public:
                 friend class WorldGenerator;
+                friend class WorldLoader;
 
                 GameWorld();
                 GameWorld(GameWorld& otherWorld);

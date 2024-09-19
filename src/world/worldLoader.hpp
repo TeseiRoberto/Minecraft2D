@@ -10,6 +10,7 @@
 #ifndef WORLD_LOADER_H
 #define WORLD_LOADER_H
 
+#include <string>
 #include <fstream>
 #include <filesystem>
 
@@ -24,11 +25,13 @@ namespace mc2d {
         public:
                 WorldLoader() = delete;
 
-                static GameWorld        loadWorld(const std::filesystem::path& worldPath);
-                static void             saveWorld(const std::filesystem::path& worldPath, const GameWorld& world);
+                static bool             loadWorld(const std::filesystem::path& worldPath, GameWorld& world);
+                static bool             saveWorld(const std::filesystem::path& worldPath, GameWorld& world);
 
-                static Chunk            loadChunk(const std::filesystem::path& worldPath, int chunkId);
-                static void             saveChunk(const std::filesystem::path& worldPath, const Chunk& chunk);
+                static bool             loadChunk(const std::filesystem::path& worldPath, int chunkId, Chunk& chunk);
+                static bool             saveChunk(const std::filesystem::path& worldPath, const Chunk& chunk);
+
+                static std::string      createDummyWorldName();
 
         private:
 

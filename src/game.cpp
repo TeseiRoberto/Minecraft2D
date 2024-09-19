@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_gameDataDir(GAME_DATA_DIRECTORY), m_window(NULL), m_currScene(nullptr)
+        Game::Game() : m_gameState(GameState::UNINITIALIZED), m_window(NULL), m_currScene(nullptr)
         {}
 
 
@@ -31,8 +31,8 @@ namespace mc2d {
                 m_settings = settings;
 
                 // Create directory to contain game data (if it does not exist)
-                if(!std::filesystem::exists(m_gameDataDir))
-                        std::filesystem::create_directory(m_gameDataDir);
+                if(!std::filesystem::exists(settings.pathToGameData))
+                        std::filesystem::create_directory(settings.pathToGameData);
 
                 // Initialize glfw
                 if(!glfwInit())

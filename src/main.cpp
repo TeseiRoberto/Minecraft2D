@@ -1,10 +1,8 @@
 
 #include "game.hpp"
-#include <cstdint>
 
 int main()
 {
-
         mc2d::GameSettings settings;
         mc2d::Game minecraft2D;
 

@@ -1,6 +1,7 @@
 
 #include "gameWorld.hpp"
 #include "worldGenerator.hpp"
+#include "worldLoader.hpp"
 #include "graphics/camera.hpp"
 
 namespace mc2d {
@@ -20,7 +21,7 @@ namespace mc2d {
                 m_worldSeed = otherWorld.m_worldSeed;
                 m_loadedChunks = otherWorld.m_loadedChunks;
                 m_players = otherWorld.m_players;
-                m_pathToWorldDir = "";
+                m_pathToWorldDir = otherWorld.m_pathToWorldDir;
         }
 
 
@@ -225,14 +226,15 @@ namespace mc2d {
                 if(m_loadedChunks.find(id) != m_loadedChunks.end())
                         return;
 
-                // TODO: Load chunk data from file, if file does not exists then generate a new random chunk
-                // WorldLoader::loadChunk(id);
-                
-                logWarn("GameWorld::loadChunk() called, loading chunk %d", id);
+                Chunk c;
 
-                // For now I'm simply generating a new chunk from scratch
-                Chunk c = WorldGenerator::generateRandomChunk(m_worldSeed + id);
-                c.id = id;
+                // Load chunk data from file, if file does not exists then generate a new random chunk
+                if(!WorldLoader::loadChunk(m_pathToWorldDir, id, c))
+                {
+                        c = WorldGenerator::generateRandomChunk(m_worldSeed + id);
+                        c.id = id;
+                }
+
                 m_loadedChunks.insert( { id, std::move(c) } );
         }
 
@@ -245,11 +247,7 @@ namespace mc2d {
                 if(c == m_loadedChunks.end())
                         return m_loadedChunks.end();
 
-                logWarn("GameWorld::unloadChunk() called, unloading chunk %d", c->second.id);
-
-                // TODO: Save chunk data into a file
-                // WorldLoader::saveChunk(c->second);
-
+                WorldLoader::saveChunk(m_pathToWorldDir, c->second);
                 return m_loadedChunks.erase(c);
         }
 

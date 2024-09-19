@@ -23,13 +23,11 @@
 namespace mc2d {
 
 
-        // Name of the directory in which all game data will be saved  (settings and game worlds)
-        constexpr const char* GAME_DATA_DIRECTORY = "minecraft2D_data";
-
-
         struct GameSettings {
-                uint32_t        windowWidth     = 720;          // The width of the game window
-                uint32_t        windowHeight    = 480;          // the height of the game window
+                uint32_t                windowWidth     = 720;                  // The width of the game window
+                uint32_t                windowHeight    = 480;                  // the height of the game window
+        
+                std::filesystem::path   pathToGameData = "minecraft2D_data";    // Path to the directory that contains all game data (settings and save games)
         };
 
 
@@ -45,8 +43,6 @@ namespace mc2d {
                 bool                            setScene(std::unique_ptr<Scene>&& newScene);
 
                 inline GameSettings&            getSettings()                   { return m_settings; }
-                inline std::filesystem::path    getGameDataDirectory() const    { return m_gameDataDir; }
-
 
         private:
 
@@ -65,7 +61,6 @@ namespace mc2d {
 
                 GameState               m_gameState;                    // The current state of the game
                 GameSettings            m_settings;                     // The game settings
-                std::filesystem::path   m_gameDataDir;                  // Directory that contains all game data (settings and save games)
                 GLFWwindow*             m_window;                       // Game's main window
                 Renderer                m_renderer;
 

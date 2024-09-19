@@ -4,7 +4,7 @@
 namespace mc2d {
 
 
-        GameScene::GameScene(GameWorld& gameWorld) : m_playerSprite(Sprite()), m_playerCamera(Camera(0.0f, 18.0f, 1.0f, 18, 18)),
+        GameScene::GameScene(GameWorld&& gameWorld) : m_playerSprite(Sprite()), m_playerCamera(Camera(0.0f, 18.0f, 1.0f, 18, 18)),
                 m_gameWorld(gameWorld), m_currPlayerId(0), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
         {}
 
@@ -15,7 +15,6 @@ namespace mc2d {
                 if(isInit())
                         terminate();
         }
-
 
 
         // Initializes all the resources needed for the game scene
@@ -127,20 +126,27 @@ namespace mc2d {
                         // Debug code to generate a new random world when G is pressed
                         case GLFW_KEY_G:
                                 if(action == GLFW_PRESS)
+                                {
+                                        std::filesystem::path oldSaveDir = m_gameWorld.getWorldSaveDirectory();
                                         m_gameWorld = WorldGenerator::generateRandomWorld((unsigned) std::time(nullptr), 3);
+                                        m_gameWorld.setWorldSaveDirectory(oldSaveDir);
+                                }
                                 break;
 
                         // Debug code to generate a flat world when F is pressed
                         case GLFW_KEY_F:
                                 if(action == GLFW_PRESS)
+                                {
+                                        std::filesystem::path oldSaveDir = m_gameWorld.getWorldSaveDirectory();
                                         m_gameWorld = WorldGenerator::generateFlatWorld(3);
+                                        m_gameWorld.setWorldSaveDirectory(oldSaveDir);
+                                }
                                 break;
 
                         // Save the current game world when Ctrl + S is pressed
                         case GLFW_KEY_S:
                                 if(action == GLFW_PRESS && mods & GLFW_MOD_CONTROL)
-                                        // TODO: Save the current world
-                                        //WorldLoader::saveWorld(m_gameWorld.getWorldSaveDirectory(), m_gameWorld);
+                                        WorldLoader::saveWorld(m_gameWorld.getWorldSaveDirectory(), m_gameWorld);
                                 break;
 
                         // Change cursor block type to the previous one
