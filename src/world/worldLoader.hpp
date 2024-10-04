@@ -25,20 +25,18 @@ namespace mc2d {
         public:
                 WorldLoader() = delete;
 
-                static bool             loadWorld(const std::filesystem::path& worldPath, GameWorld& world);
-                static bool             saveWorld(const std::filesystem::path& worldPath, GameWorld& world);
+                static bool             loadWorld(const std::filesystem::path& worldDirPath, GameWorld& world);
+                static bool             saveWorld(const std::filesystem::path& worldDirPath, GameWorld& world);
 
-                static bool             loadChunk(const std::filesystem::path& worldPath, int chunkId, Chunk& chunk);
-                static bool             saveChunk(const std::filesystem::path& worldPath, const Chunk& chunk);
+                static bool             loadChunk(const std::filesystem::path& worldDirPath, int chunkId, Chunk& chunk);
+                static bool             saveChunk(const std::filesystem::path& worldDirPath, const Chunk& chunk);
 
                 static std::string      createDummyWorldName();
 
         private:
 
-                // TODO: add implementation
-                //static std::vector<Blocks>      deserializeBlocks();
-                //static Entity                   deserializeEntity();
-
+                static inline std::filesystem::path     getWorldFilename()              { return std::filesystem::path("world.dat"); }
+                static inline std::filesystem::path     getChunkFilename(int chunkId)   { return std::filesystem::path("chunk" + std::to_string(chunkId) + ".dat"); }
 
         };
 

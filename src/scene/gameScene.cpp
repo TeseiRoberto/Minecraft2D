@@ -5,7 +5,7 @@ namespace mc2d {
 
 
         GameScene::GameScene(GameWorld&& gameWorld) : m_playerSprite(Sprite()), m_playerCamera(Camera(0.0f, 18.0f, 1.0f, 18, 18)),
-                m_gameWorld(gameWorld), m_currPlayerId(0), m_optimizedDraw(false), m_cursorBlockType(BlockType::GRASS)
+                m_gameWorld(gameWorld), m_currPlayerId(0), m_optimizedDraw(true), m_cursorBlockType(BlockType::GRASS)
         {}
 
 
@@ -146,7 +146,14 @@ namespace mc2d {
                         // Save the current game world when Ctrl + S is pressed
                         case GLFW_KEY_S:
                                 if(action == GLFW_PRESS && mods & GLFW_MOD_CONTROL)
-                                        WorldLoader::saveWorld(m_gameWorld.getWorldSaveDirectory(), m_gameWorld);
+                                {
+                                        if(WorldLoader::saveWorld(m_gameWorld.getWorldSaveDirectory(), m_gameWorld))
+                                        {
+                                                logInfo("World saved successfully!");
+                                        } else {
+                                                logWarn("failed to save world!");
+                                        }
+                                }
                                 break;
 
                         // Change cursor block type to the previous one
@@ -195,6 +202,7 @@ namespace mc2d {
                                 if(action == GLFW_PRESS)
                                 {
                                         logWarn("Game Info:");
+                                        logInfo("       - world seed: %u", m_gameWorld.getSeed());
                                         logInfo("       - camera pos: (%f, %f)", m_playerCamera.getPos().x, m_playerCamera.getPos().y);
                                         logInfo("       - camera size: (%f, %f)", m_playerCamera.getWidth(), m_playerCamera.getHeight());
 
@@ -262,7 +270,7 @@ namespace mc2d {
                         case GLFW_KEY_Z:
                                 if(action == GLFW_PRESS)
                                 {
-                                        size_t newPlayerId = (m_currPlayerId - 1) % m_gameWorld.getPlayers().size();
+                                        size_t newPlayerId = (m_currPlayerId + m_gameWorld.getPlayers().size() - 1) % m_gameWorld.getPlayers().size();
                                         m_currPlayerId = newPlayerId;
                                         logInfo("Switched to the player %lu", newPlayerId);
                                 }

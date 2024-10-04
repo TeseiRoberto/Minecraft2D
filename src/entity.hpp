@@ -4,6 +4,7 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#include <fstream>
 #include <glm/vec3.hpp>
 
 namespace mc2d {
@@ -12,7 +13,6 @@ namespace mc2d {
         enum class EntityType {
                 PLAYER,
                 CHICKEN,
-                ZOMBIE
 
                 // TODO: Add other entities
         };
@@ -39,6 +39,10 @@ namespace mc2d {
                 inline const bool       isFacingRight() const                   { return m_isFacingRight; }
 
                 inline void             updatePos(float x, float y)             { m_pos.x += x; m_pos.y += y; }
+
+                bool                    serialize(std::ofstream& file) const;
+                bool                    deserialize(std::ifstream& file);
+
 
         private:
                 glm::vec3       m_pos;                  // The position of the entity in world coordinates

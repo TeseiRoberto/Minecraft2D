@@ -46,7 +46,11 @@ namespace mc2d {
                 std::vector<Entity>     entities;               // Keeps track of all the entities that are contained in the chunk
 
                 // Returns the coordinates (in world space) of the top left corner of the chunk
-                inline glm::vec2  getPos() const                { return glm::vec2( (float) (id * Chunk::width) * BLOCK_WIDTH, (float) Chunk::height * BLOCK_HEIGHT); }
+                inline glm::vec2        getPos() const                { return glm::vec2( (float) (id * Chunk::width) * BLOCK_WIDTH, (float) Chunk::height * BLOCK_HEIGHT); }
+
+
+                bool                    serialize(std::ofstream& file) const;
+                bool                    deserialize(std::ifstream& file);
         };
 
 
@@ -71,6 +75,7 @@ namespace mc2d {
                 BlockType                               getBlock(float x, float y) const;
                 inline bool                             hasChanged() const                                      { return m_hasChanged; }
                 inline std::filesystem::path            getWorldSaveDirectory() const                           { return m_pathToWorldDir; }
+                inline unsigned                         getSeed() const                                         { return m_worldSeed; }
 
                 inline Entity&                          getMainPlayer()                                         { return m_players[0]; }
                 inline std::vector<Entity>&             getPlayers()                                            { return m_players; }
@@ -79,6 +84,9 @@ namespace mc2d {
                 inline int                              getEntityChunkId(const Entity& e) const                 { return std::floor(e.getPos().x / (float) Chunk::width); }
                 Chunk*                                  getEntityChunk(const Entity& e);
                 std::vector<const Chunk*>               getVisibleChunks(const Camera& camera) const;
+
+                bool                                    serialize(std::ofstream& file) const;
+                bool                                    deserialize(std::ifstream& file);
 
         private:
 

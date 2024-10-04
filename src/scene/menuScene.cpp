@@ -222,7 +222,10 @@ namespace mc2d {
                 auto endIt = std::filesystem::directory_iterator();
 
                 while(i != m_userChoice && currIt != endIt)
+                {
                         ++currIt;
+                        ++i;
+                }
 
                 if(currIt == endIt)
                 {
@@ -233,6 +236,7 @@ namespace mc2d {
 
                 m_userChoice = -1;
                 GameWorld world;
+
                 if(!WorldLoader::loadWorld(currIt->path(), world))
                         return;
                 

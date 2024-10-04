@@ -6,6 +6,106 @@
 
 namespace mc2d {
 
+        
+        // Writes the chunk data in the given file
+        // @file: output file stream in which chunk data will be written
+        // @returns: true if serialization is successfull, false otherwise
+        bool Chunk::serialize(std::ofstream& file) const
+        {
+                if(!file.good())
+                {
+                        logError("Chunk::serialize() failed, the given file stream is broken!");
+                        return false;
+                }
+
+                bool res = true;
+
+                // First we save the chunk biome type
+                file << static_cast<uint32_t>(biome) << '\n';
+
+                // Then we save the chunk dimensions (for now they are fixed but they may become a game setting in the future)
+                file << Chunk::width << ' ' << Chunk::height << '\n';
+                
+                // Then we save all the blocks in the chunk
+                for(size_t y = 0; y < Chunk::height; ++y)
+                {
+                        for(size_t x = 0; x < Chunk::width; ++x)
+                                file << static_cast<uint32_t>(blocks[ (y * Chunk::width) + x ]) << ' ';
+
+                        file << '\n';
+                }
+
+                // And then data about all the entities contained in this chunk
+                file << entities.size() << '\n';
+                for(auto e = entities.begin(); e != entities.end() && res != false; ++e)
+                        res = e->serialize(file);
+
+                return res;
+        }
+
+
+        // Reads chunk data from the given file
+        // @file: input file stream from which chunk data will be read
+        // @returns: true if deserialization is successfull, false otherwise
+        bool Chunk::deserialize(std::ifstream& file)
+        {
+                if(!file.good())
+                {
+                        logError("Chunk::deserialize() failed, the given file stream is broken!");
+                        return false;
+                }
+
+                bool res;
+                uint32_t biomeType;
+                uint8_t expectedChunkWidth;
+                uint8_t expectedChunkHeight;
+                std::vector<BlockType> blocks;
+                size_t entitiesNum;
+                std::vector<Entity> entities;
+
+                file >> biomeType;                              // Read biome of the chunk
+                file >> expectedChunkWidth;                     // Read width of the chunk
+                file >> expectedChunkHeight;                    // Read height of the chunk
+
+                res = file.good();
+                if(!res)
+                {
+                        logError("Chunk::deserialize() failed, cannot read chunk properties (biome type and/or dimensions)!");
+                        return false;
+                }
+
+                // Then we read data about all the blocks in the chunk
+                blocks.reserve(expectedChunkWidth * expectedChunkHeight);
+                for(size_t i = 0; i < expectedChunkWidth * expectedChunkHeight && res != false; ++i)
+                {
+                        uint32_t currBlockType;
+                        file >> currBlockType;
+                        blocks.push_back(static_cast<BlockType>(currBlockType));
+
+                        res = file.good();
+                }
+
+                // And then we read data about all the entities contained in the chunk
+                file >> entitiesNum;
+                blocks.reserve(entitiesNum);
+                for(size_t i = 0; i < entitiesNum && res != false; ++i)
+                {
+                        Entity e(glm::vec3(0.0f), 100.0f, EntityType::CHICKEN);
+                        res = e.deserialize(file);
+                        entities.push_back(e);
+                }
+
+                // If deserialization was successfull we can use such data to intiialize this chunk
+                if(res)
+                {
+                        this->biome = static_cast<BiomeType>(biomeType);
+                        this->blocks = std::move(blocks);
+                        this->entities = std::move(entities);
+                }
+
+                return res;
+        }
+
 
         // GameWorld constructor, creates a zero intialized world
         GameWorld::GameWorld() :
@@ -208,12 +308,95 @@ namespace mc2d {
                 for(auto& p : m_players)
                 {
                         int playerChunkId = getEntityChunkId(p);
-                        if(m_loadedChunks.find(playerChunkId - 1) == m_loadedChunks.end())
-                                loadChunk(playerChunkId - 1);
-
-                        if(m_loadedChunks.find(playerChunkId + 1) == m_loadedChunks.end())
-                                loadChunk(playerChunkId + 1);
+                        loadChunk(playerChunkId - 1);
+                        loadChunk(playerChunkId + 1);
                 }
+        }
+
+
+        // Writes the world data in the given file
+        // @file: output file stream in which world data will be written
+        // @returns: true if serialization is successfull, false otherwise
+        bool GameWorld::serialize(std::ofstream& file) const
+        {
+                if(!file.good())
+                {
+                        logError("GameWorld::serialize() failed, the given file stream is broken!");
+                        return false;
+                }
+
+                bool res = true;
+
+                // First we save the world seed and the chunk dimensions
+                file << m_worldSeed << '\n';
+
+                // Then data about all players in the game world
+                file << m_players.size() << '\n';
+
+                for(auto p = m_players.begin(); p != m_players.end() && res != false; ++p)
+                        res = p->serialize(file);
+
+                // Then save all the currently loaded chunks
+                for(auto c = m_loadedChunks.begin(); c != m_loadedChunks.end() && res != false; ++c)
+                        res = WorldLoader::saveChunk(m_pathToWorldDir, c->second);
+
+                return res;
+        }
+
+
+        // Reads world data from the given file
+        // @file: input file stream from which world data will be read
+        // @returns: true if deserialization is successfull, false otherwise
+        bool GameWorld::deserialize(std::ifstream& file)
+        {
+                if(!file.good())
+                {
+                        logError("GameWorld::deserialize() failed, the given file stream is broken!");
+                        return false;
+                }
+
+                bool res = true;
+                unsigned seed;
+                size_t playersNum;
+                std::vector<Entity> players;
+
+                file >> seed;                                   // Read world seed
+                file >> playersNum;                             // Read Number of players in the world
+
+                res = file.good();
+                if(!res)
+                {
+                        logError("GameWorld::deserialize() failed, cannot read world data from the given stream!");
+                        return res;
+                }
+
+                // Read data for all players
+                players.reserve(playersNum);
+                for(size_t i = 0; i < playersNum && res != false; ++i)
+                {
+                        Entity currPlayer(glm::vec3(0.0f), 100.0f, EntityType::PLAYER);
+                        res = currPlayer.deserialize(file);
+                        players.push_back(currPlayer);
+                }
+
+                // If data deserialization was successfull we can use such data to setup this game world
+                if(res)
+                {
+                        m_worldSeed = seed;
+                        m_players = std::move(players);
+
+                        // Load all chunks near players (for each player the chunks
+                        // adjacent to the one in which the player currently is must be loaded)
+                        for(auto& p : m_players)
+                        {
+                                int playerChunkId = getEntityChunkId(p);
+                                loadChunk(playerChunkId - 1);
+                                loadChunk(playerChunkId);
+                                loadChunk(playerChunkId + 1);
+                        }
+                }
+
+                return res;
         }
 
 

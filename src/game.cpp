@@ -30,7 +30,7 @@ namespace mc2d {
                 m_gameState = GameState::INITIALIZED;
                 m_settings = settings;
 
-                // Create directory to contain game data (if it does not exist)
+                // Create directory to contain game data (if it does not exist yet)
                 if(!std::filesystem::exists(settings.pathToGameData))
                         std::filesystem::create_directory(settings.pathToGameData);
 
