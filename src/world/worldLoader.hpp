@@ -24,6 +24,7 @@ namespace mc2d {
         class WorldLoader {
         public:
                 WorldLoader() = delete;
+                ~WorldLoader() = delete;
 
                 static bool             loadWorld(const std::filesystem::path& worldDirPath, GameWorld& world);
                 static bool             saveWorld(const std::filesystem::path& worldDirPath, GameWorld& world);

@@ -25,7 +25,7 @@
 
 #include "logging.hpp"
 #include "utility.hpp"
-#include "block.hpp"
+#include "blockTypes.hpp"
 #include "entity.hpp"
 
 namespace mc2d {

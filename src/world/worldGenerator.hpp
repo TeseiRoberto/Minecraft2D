@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include "gameWorld.hpp"
-#include "biome.hpp"
+#include "worldEncyclopedia.hpp"
 
 namespace mc2d {
 
@@ -20,6 +20,7 @@ namespace mc2d {
         class WorldGenerator {
         public:
                 WorldGenerator() = delete;
+                ~WorldGenerator() = delete;
 
                 static GameWorld        generateRandomWorld(const std::string& seed, uint32_t initialChunksNum);
                 static GameWorld        generateRandomWorld(const unsigned seed, uint32_t initialChunksNum);

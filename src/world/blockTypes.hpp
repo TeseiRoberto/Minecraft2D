@@ -1,19 +1,13 @@
 
-// Defines the BlockType enum, the Block and BlocksTable classes.
-//
-// The Block class defines all the properties of a certain block type.
-//
-// The BlocksTable class holds a look up table that enables us to get all the properties
-// of a block using only its block type
-//
-// Note: The block type is actually an uint8_t and is used as an index into the blocks look up table and in the
-// blocks tileset so make sure to keep those in sync, in other words the order of blocks in the look up table and in the 
-// tileset must match the order of declaration in the enum!!! (AIR is not rendered so is not present in the tileset)
-//
+// Defines the BlockType enum, this is simply an enumeration of all the block types available in the game.
+// Note: All the blocks properties are defined in the WorldEncyclopedia class.
+// Note: The integer associated to the BlockType is used as a tile ID into the blocks 
 
+// Note: The block type is actually an uint8_t and is used as a tile id in the blocks tileset so make sure to keep those in sync,
+// in other words the order of blocks in the tileset must match the order of declaration in the enum!!! (AIR is not rendered so is not present in the tileset)
 
-#ifndef BLOCK_H
-#define BLOCK_H
+#ifndef BLOCK_TYPES_H
+#define BLOCK_TYPES_H
 
 #include <cstdint>
 
@@ -24,7 +18,8 @@ namespace mc2d {
         constexpr float BLOCK_HEIGHT = 1.0f;
 
 
-        // Enumeration of all block types available in the game
+        // Note: If you change this enum make sure to update the look-up table in WorldEncyclopedia class too (in worldEncyclopeida.cpp) and keep the same order of elements!
+        // Remember to update "resources/myTileset.png" too.
         enum class BlockType : uint8_t {
                 GRASS = 0,
                 DIRT,
@@ -117,32 +112,6 @@ namespace mc2d {
                 BLOCK_TYPE_MAX          // Keep me last!!!
         };
 
-
-        class Block {
-        public:
-                Block(bool collidable, uint8_t hardness, uint8_t luminance);
-                ~Block() = default;
-
-                inline const bool       isCollidable()  const   { return static_cast<bool>(m_properties & 0b01000000); }
-                inline const uint8_t    getHardness()   const   { return static_cast<uint8_t>( (m_properties & 0b111000) >> 3); }
-                inline const uint8_t    getLuminance()  const   { return static_cast<uint8_t>(m_properties & 0b111); }
-
-        private:
-                uint8_t         m_properties;                   // Bit field in which all the block properties are embedded
-        };
-
-
-        class BlocksTable {
-        public:
-                BlocksTable() = delete;
-                ~BlocksTable() = delete;
-
-                static inline const Block&      getBlockDetails(const BlockType type);
-
-        private:
-                static const Block              s_blocksLUT[];
-        };
-
 }
 
-#endif // BLOCK_H
+#endif // BLOCK_TYPES_H

@@ -216,7 +216,7 @@ namespace mc2d {
                                         logInfo("");
                                         logInfo("       ==========[ Loaded chunks info ]==========");
                                         for(const auto& c : m_gameWorld.getLoadedChunks())
-                                                logInfo("       chunk %d] biome: %s", c.second.id, Biome::getBiomeProperties(c.second.biome).name.c_str() );
+                                                logInfo("       chunk %d] biome: %s", c.second.id, WorldEncyclopedia::getBiomeProperties(c.second.biome).name.c_str() );
                                 
                                         logInfo("");
                                 }

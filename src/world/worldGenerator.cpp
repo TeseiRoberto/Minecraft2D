@@ -31,6 +31,7 @@ namespace mc2d {
                 int numOfLeftChunks = (int) ( ((float) initialChunksNum / 2.0f) );      // Number of chunks on the left of the root chunk
                 int id = -1 * numOfLeftChunks;
 
+                // Create random chunks
                 std::vector<Chunk> chunks;
                 for(uint32_t i = 0; i < initialChunksNum; ++i)
                 {
@@ -77,12 +78,12 @@ namespace mc2d {
                 
                 std::mt19937 gen(seed);
 
-                // If biome has not been specified then choose a random one
+                // If biome has not been specified (it is the default parameter) then choose a random one
                 if(biome == BiomeType::BIOME_TYPE_MAX)
                         biome = static_cast<BiomeType>( gen() % ((uint32_t) BiomeType::BIOME_TYPE_MAX - 2) );
 
                 // Retrieve biome properties
-                const BiomeProperties& biomeProps = Biome::getBiomeProperties(biome);
+                const BiomeProperties& biomeProps = WorldEncyclopedia::getBiomeProperties(biome);
 
                 // Generate random terrain for the chunk
                 Terrain t = generateRandomTerrain(seed, Chunk::width, Chunk::height, biomeProps);

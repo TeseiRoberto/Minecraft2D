@@ -114,7 +114,7 @@ namespace mc2d {
         {}
 
 
-        // Copy contructor
+        // Copy constructor
         GameWorld::GameWorld(GameWorld& otherWorld)
         {
                 m_hasChanged = true;
@@ -125,29 +125,35 @@ namespace mc2d {
         }
 
 
-        // Creates a game world that contains the given chunks
+        // Creates a game world that contains the given players and chunks 
         // @chunks: chunks that makes up the world
         // @seed: seed that will be used to generate new chunks when needed
         GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed) :
                 m_hasChanged(true), m_worldSeed(seed), m_pathToWorldDir(""),
-                m_loadedChunks({}), m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
+                m_loadedChunks( {} ), m_players( {} )
         {
-                if(chunks.size() == 0)
+                if(chunks.empty())
                 {
                         const int defaultNumOfChunks = 3;
                         *this = WorldGenerator::generateRandomWorld(seed, defaultNumOfChunks);
-                        logWarn("GameWorld::GameWorld() failed, given chunks list is empty, a random world has been created!");
-                } else {
+                        logWarn("GameWorld::GameWorld() failed, given vector of chunks is empty, a random world has been created!");
 
+                } else {
+                        // Reassign ids to the given chunks to ensure that they are all unique
                         int id = -1 * (chunks.size() / 2);      
-                        for(auto& c : chunks)                   // Assign ids to chunks so that they are all unique and ordered
+                        for(auto& c : chunks)
                         {
                                 c.id = id;
                                 m_loadedChunks.insert( { id, std::move(c) } );
                                 ++id;
                         }
 
-                        // TODO: Calculate player spawn position
+                        // Compute spawn position for the main player and insert it in the game world
+                        auto rootChunk = m_loadedChunks.find(0);
+                        float spawnPosX = Chunk::width / 2.0f;
+                        float spawnPosY = WorldEncyclopedia::getBiomeProperties(rootChunk->second.biome).maxTerrainHeight + 2.0f;
+
+                        m_players.emplace_back( glm::vec3(spawnPosX, spawnPosY, 0.0f), 100.0f, EntityType::PLAYER );
                 }
         }
 

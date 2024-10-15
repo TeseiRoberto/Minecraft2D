@@ -14,11 +14,10 @@ set (SRCS
 
         src/main.cpp
         src/game.cpp
-        src/world/block.cpp
-        src/world/biome.cpp
         src/world/gameWorld.cpp
         src/world/worldGenerator.cpp
         src/world/worldLoader.cpp
+        src/world/worldEncyclopedia.cpp
 
         src/scene/menuScene.cpp
         src/scene/gameScene.cpp
