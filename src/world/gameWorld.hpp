@@ -54,6 +54,10 @@ namespace mc2d {
         };
 
 
+        // Default duration value of one day (in milliseconds) in a game world (300'000 ms = 5 minutes)
+        constexpr size_t DEFAULT_DAY_DURATION = 300'000u;
+
+
         class GameWorld {
         public:
                 friend class WorldGenerator;
@@ -61,7 +65,7 @@ namespace mc2d {
 
                 GameWorld();
                 GameWorld(GameWorld& otherWorld);
-                GameWorld(std::vector<Chunk>&& chunks, unsigned seed);
+                GameWorld(std::vector<Chunk>&& chunks, unsigned seed, size_t dayDuration = DEFAULT_DAY_DURATION);
                 ~GameWorld() = default;
 
                 GameWorld&                              operator = (GameWorld&& otherWorld);
@@ -71,11 +75,15 @@ namespace mc2d {
                 void                                    setBlock(float x, float y, BlockType newBlock);
                 inline void                             setHasChanged(bool changed)                             { m_hasChanged = changed; }
                 inline void                             setWorldSaveDirectory(std::filesystem::path path)       { m_pathToWorldDir = path; }
+                inline void                             setDayDuration(size_t millis)                           { m_dayDuration = millis; }
+                void                                    setDayTime(size_t hours, size_t minutes);
 
                 BlockType                               getBlock(float x, float y) const;
                 inline bool                             hasChanged() const                                      { return m_hasChanged; }
-                inline std::filesystem::path            getWorldSaveDirectory() const                           { return m_pathToWorldDir; }
                 inline unsigned                         getSeed() const                                         { return m_worldSeed; }
+                inline std::filesystem::path            getWorldSaveDirectory() const                           { return m_pathToWorldDir; }
+                inline size_t                           getDayDuration() const                                  { return m_dayDuration; }
+                void                                    getDayTime(size_t& hours, size_t& minutes) const;
 
                 inline Entity&                          getMainPlayer()                                         { return m_players[0]; }
                 inline std::vector<Entity>&             getPlayers()                                            { return m_players; }
@@ -98,6 +106,8 @@ namespace mc2d {
                 bool                    m_hasChanged;           // Flag used to indicate that one or more blocks have been added/removed from the world
                 unsigned                m_worldSeed;            // Seed used during world generation
                 std::filesystem::path   m_pathToWorldDir;       // Path to the directory in which world data is stored
+                size_t                  m_dayDuration;          // Duration of one day in milliseconds
+                float                   m_dayTime;              // The current time in the world in milliseconds (used to control the day-night cycle)
                 std::map<int, Chunk>    m_loadedChunks;         // Chunks currently in memory
                 std::vector<Entity>     m_players;              // Keeps track of all players in the game world
         };

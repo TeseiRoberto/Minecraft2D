@@ -201,8 +201,12 @@ namespace mc2d {
                         case GLFW_KEY_F1:
                                 if(action == GLFW_PRESS)
                                 {
+                                        size_t hours, minutes;
+                                        m_gameWorld.getDayTime(hours, minutes);
+
                                         logWarn("Game Info:");
                                         logInfo("       - world seed: %u", m_gameWorld.getSeed());
+                                        logInfo("       - world time: %02lu::%02lu", hours, minutes);
                                         logInfo("       - camera pos: (%f, %f)", m_playerCamera.getPos().x, m_playerCamera.getPos().y);
                                         logInfo("       - camera size: (%f, %f)", m_playerCamera.getWidth(), m_playerCamera.getHeight());
 

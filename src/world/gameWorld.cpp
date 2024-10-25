@@ -109,7 +109,7 @@ namespace mc2d {
 
         // GameWorld constructor, creates a zero intialized world
         GameWorld::GameWorld() :
-                m_hasChanged(false), m_worldSeed(0), m_pathToWorldDir(""),
+                m_hasChanged(false), m_worldSeed(0), m_dayDuration(0), m_dayTime(0.0f), m_pathToWorldDir(""),
                 m_loadedChunks({}), m_players( { Entity(glm::vec3(0.0f, 0.0f, 0.0f), 100.0f, EntityType::PLAYER) } )
         {}
 
@@ -118,9 +118,14 @@ namespace mc2d {
         GameWorld::GameWorld(GameWorld& otherWorld)
         {
                 m_hasChanged = true;
+
                 m_worldSeed = otherWorld.m_worldSeed;
+                m_dayDuration = otherWorld.m_dayDuration;
+                m_dayTime = otherWorld.m_dayTime;
+
                 m_loadedChunks = otherWorld.m_loadedChunks;
                 m_players = otherWorld.m_players;
+
                 m_pathToWorldDir = otherWorld.m_pathToWorldDir;
         }
 
@@ -128,8 +133,9 @@ namespace mc2d {
         // Creates a game world that contains the given players and chunks 
         // @chunks: chunks that makes up the world
         // @seed: seed that will be used to generate new chunks when needed
-        GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed) :
-                m_hasChanged(true), m_worldSeed(seed), m_pathToWorldDir(""),
+        // @dayDuration: duration of one day in the world (in milliseconds)
+        GameWorld::GameWorld(std::vector<Chunk>&& chunks, unsigned seed, size_t dayDuration) :
+                m_hasChanged(true), m_worldSeed(seed), m_dayDuration(dayDuration), m_pathToWorldDir(""),
                 m_loadedChunks( {} ), m_players( {} )
         {
                 if(chunks.empty())
@@ -154,6 +160,8 @@ namespace mc2d {
                         float spawnPosY = WorldEncyclopedia::getBiomeProperties(rootChunk->second.biome).maxTerrainHeight + 2.0f;
 
                         m_players.emplace_back( glm::vec3(spawnPosX, spawnPosY, 0.0f), 100.0f, EntityType::PLAYER );
+
+                        setDayTime(7, 0);               // Set day time to 07:00
                 }
         }
 
@@ -162,11 +170,15 @@ namespace mc2d {
         GameWorld& GameWorld::operator = (GameWorld&& otherWorld)
         {
                 m_hasChanged = true;
+
                 m_worldSeed = otherWorld.m_worldSeed;
+                m_dayDuration = otherWorld.m_dayDuration;
+                m_dayTime = otherWorld.m_dayTime;
+
                 m_loadedChunks = std::move(otherWorld.m_loadedChunks);
                 m_players = std::move(otherWorld.m_players);
-                m_pathToWorldDir = otherWorld.m_pathToWorldDir;
 
+                m_pathToWorldDir = otherWorld.m_pathToWorldDir;
                 return *this;
         }
 
@@ -192,6 +204,11 @@ namespace mc2d {
                         for(auto& e : c.second.entities)
                                 e.update(deltaTime);
                 }
+
+                // Update world time (TODO: Still need to implement the day-night cycle)
+                m_dayTime += deltaTime;
+                if(m_dayTime > (float) m_dayDuration)
+                        m_dayTime = 0.0f;
         }
 
 
@@ -224,6 +241,20 @@ namespace mc2d {
         }
 
 
+        // Sets the current time of the day
+        // @hour: hour at which time of the day must be set
+        // @minutes: minutes at which time of the day must be set
+        void GameWorld::setDayTime(size_t hours, size_t minutes)
+        {
+                // Compute duration of an hour and a minute in "world time"
+                size_t msInAnHour = m_dayDuration / 24;
+                size_t msInAMinute = msInAnHour / 60;
+
+                // Update day time
+                m_dayTime = static_cast<float>( (hours * msInAnHour) + (minutes * msInAMinute) );
+        }
+
+
         // Returns the block placed at the given coordinates
         // @x: x coordinate of the block in world space
         // @y: y coordinate of the block in world space
@@ -248,6 +279,25 @@ namespace mc2d {
                 size_t yIndex = (size_t) std::floor(c->second.getPos().y - y);
                 
                 return c->second.blocks[(yIndex * Chunk::width) + xIndex];
+        }
+
+
+        // Returns the current time of the day
+        // @hour: output variable in which the current hours value will be written
+        // @minutes: output variable in which the current minutes value will be written
+        void GameWorld::getDayTime(size_t& hours, size_t& minutes) const
+        {
+                // Compute duration of an hour and a minute (in milliseconds) in "world time"
+                float msInAnHour = (float) m_dayDuration / 24.0f;
+                float msInAMinute = (float) msInAnHour / 60.0f;
+
+                // Convert day time from milliseconds to hour and minutes
+                float millis = m_dayTime;
+                
+                hours = static_cast<size_t>(millis / msInAnHour);
+                millis -= hours * msInAnHour;
+
+                minutes = static_cast<size_t>(millis / msInAMinute);
         }
 
 
@@ -333,8 +383,11 @@ namespace mc2d {
 
                 bool res = true;
 
-                // First we save the world seed and the chunk dimensions
+                // First we save the world seed
                 file << m_worldSeed << '\n';
+
+                // Then the day duration and the current day time
+                file << m_dayDuration << ' ' << m_dayTime << '\n';
 
                 // Then data about all players in the game world
                 file << m_players.size() << '\n';
@@ -363,10 +416,14 @@ namespace mc2d {
 
                 bool res = true;
                 unsigned seed;
+                size_t dayDuration;
+                float dayTime;
                 size_t playersNum;
                 std::vector<Entity> players;
 
                 file >> seed;                                   // Read world seed
+                file >> dayDuration;                            // Read duration of one day in the world
+                file >> dayTime;                                // Read current time of the day in the world
                 file >> playersNum;                             // Read Number of players in the world
 
                 res = file.good();
@@ -389,6 +446,8 @@ namespace mc2d {
                 if(res)
                 {
                         m_worldSeed = seed;
+                        m_dayDuration = dayDuration;
+                        m_dayTime = dayTime;
                         m_players = std::move(players);
 
                         // Load all chunks near players (for each player the chunks

@@ -5,7 +5,7 @@ namespace mc2d {
 
 
         // Returns a world in which chunks are generated randomly
-        // @seed: string from which a number will be generated and used as seed for std::srand
+        // @seed: string from which a number will be generated and used as seed for the (pseudo) random number generator
         // @initialChunksNum: the number of chunks that will be generated for this world
         GameWorld WorldGenerator::generateRandomWorld(const std::string& seed, uint32_t initialChunksNum)
         {
@@ -19,7 +19,7 @@ namespace mc2d {
 
 
         // Returns a world in which all chunks are generated randomly
-        // @seed: the value for std::srand
+        // @seed: used to initialize the (pseudo) random number generator
         // @initialChunksNum: the number of chunks that will be generated for this world
         GameWorld WorldGenerator::generateRandomWorld(const unsigned seed, uint32_t initialChunksNum)
         {
@@ -27,16 +27,16 @@ namespace mc2d {
 
                 if(initialChunksNum == 0)
                         initialChunksNum = 3;
-
-                int numOfLeftChunks = (int) ( ((float) initialChunksNum / 2.0f) );      // Number of chunks on the left of the root chunk
-                int id = -1 * numOfLeftChunks;
+                
+                uint32_t leftChunksNum = initialChunksNum / 2;                  // Number of chunks on the left of the root chunk
+                int currId = -1 * leftChunksNum;
 
                 // Create random chunks
                 std::vector<Chunk> chunks;
                 for(uint32_t i = 0; i < initialChunksNum; ++i)
                 {
-                        Chunk c = generateRandomChunk(seed + id);
-                        c.id = id++;
+                        Chunk c = generateRandomChunk(seed + currId);
+                        c.id = currId++;
 
                         chunks.push_back(std::move(c));
                 }
@@ -54,14 +54,14 @@ namespace mc2d {
                 if(initialChunksNum == 0)
                         initialChunksNum = 3;
 
-                int numOfLeftChunks = (int) ( ((float) initialChunksNum / 2.0f) );      // Number of chunks on the left of the root chunk
-                int id = -1 * numOfLeftChunks;
+                uint32_t leftChunksNum = initialChunksNum / 2;                  // Number of chunks on the left of the root chunk
+                int currId = -1 * leftChunksNum;
 
                 std::vector<Chunk> chunks;
                 for(uint32_t i = 0; i < initialChunksNum; ++i)
                 {
                         Chunk c = generateFlatChunk();
-                        c.id = id++;
+                        c.id = currId++;
 
                         chunks.push_back(std::move(c));
                 }
@@ -72,6 +72,7 @@ namespace mc2d {
         
         // Generates a chunk with a random terrain
         // @seed: used to initialize the (pseudo) random number generator
+        // @biome: biome type to be used for the generated chunk (will be chosen randomly if BIOME_TYPE_MAX is given)
         Chunk WorldGenerator::generateRandomChunk(unsigned seed, BiomeType biome)
         {
                 static_assert(Chunk::width >= 8 && Chunk::height >= 8, "WorldGenerator requires chunk dimensions equal or greater than 8x8 to work properly");
@@ -80,18 +81,18 @@ namespace mc2d {
 
                 // If biome has not been specified (it is the default parameter) then choose a random one
                 if(biome == BiomeType::BIOME_TYPE_MAX)
-                        biome = static_cast<BiomeType>( gen() % ((uint32_t) BiomeType::BIOME_TYPE_MAX - 2) );
+                        biome = static_cast<BiomeType>( gen() % ((uint32_t) BiomeType::BIOME_TYPE_MAX - 1) );
 
                 // Retrieve biome properties
                 const BiomeProperties& biomeProps = WorldEncyclopedia::getBiomeProperties(biome);
 
                 // Generate random terrain for the chunk
-                Terrain t = generateRandomTerrain(seed, Chunk::width, Chunk::height, biomeProps);
+                Terrain t = generateRandomTerrain(gen, Chunk::width, Chunk::height, biomeProps);
 
                 // Add stuff to the terrain
-                //addWaterToTerrain(t, biomeProps);
-                //addiTreesToTerrain(t, biomeProps);
-                //addMineralsToTerrain(t, biomeProps);
+                //addWaterToTerrain(gen, t, biomeProps);
+                //addTreesToTerrain(gen, t, biomeProps);
+                //addMineralsToTerrain(gen, t, biomeProps);
 
                 // Create new chunk
                 Chunk newChunk = {};
@@ -110,19 +111,21 @@ namespace mc2d {
                 Chunk newChunk {};
                 newChunk.biome = BiomeType::SUPER_FLAT;
 
+                const BiomeProperties& biomeProps = WorldEncyclopedia::getBiomeProperties(BiomeType::SUPER_FLAT);
+
                 newChunk.blocks.resize(Chunk::width * Chunk::height, BlockType::AIR);
                 uint32_t offset = ((Chunk::height / 2) * Chunk::width) * sizeof(BlockType);
 
-                // First we add a layer of grass
-                std::memset(newChunk.blocks.data() + offset, (uint8_t) BlockType::GRASS, Chunk::width * sizeof(BlockType));
+                // Add one row of first layer block type
+                std::memset(newChunk.blocks.data() + offset, (uint8_t) biomeProps.firstLayerBlockType, Chunk::width * sizeof(BlockType));
                 offset += Chunk::width * sizeof(BlockType);;
 
-                // then we add two layers of dirt
-                std::memset(newChunk.blocks.data() + offset, (uint8_t) BlockType::DIRT, Chunk::width * 2 * sizeof(BlockType));
+                // Then add two rows of second layer block type
+                std::memset(newChunk.blocks.data() + offset, (uint8_t) biomeProps.secondLayerBlockType, Chunk::width * 2 * sizeof(BlockType));
                 offset += Chunk::width * 2 * sizeof(BlockType);;
 
-                // and then we add stone blocks until the end of the chunk
-                std::memset(newChunk.blocks.data() + offset, (uint8_t) BlockType::STONE, ((Chunk::height / 2) - 3) * Chunk::width * sizeof(BlockType));
+                // And then add third layer block type until the end of chunk
+                std::memset(newChunk.blocks.data() + offset, (uint8_t) biomeProps.thirdLayerBlockType, ((Chunk::height / 2) - 3) * Chunk::width * sizeof(BlockType));
         
                 // Add final bedrock layer
                 std::memset(&(newChunk.blocks[ (Chunk::height - 1) * Chunk::width ]), (uint8_t) BlockType::BEDROCK, Chunk::width * sizeof(BlockType));
@@ -139,14 +142,14 @@ namespace mc2d {
 
 
         // Generates a random terrain using the given properties
-        // @seed: used to initialize the (pseudo) random number generator
+        // @rng: pseudo random number generator to be used to generate terrain
         // @width: the width of terrain
         // @height: the height of terrain
         // @biome: specify the properties and the constraints that the generated terrain must have
         // @returns: the generated terrain
         // (Note: terrain generation uses a linear interpolation of terrain control points, those points are distributed 
         // equally on the x axis and pseudo randomly on the y axis(even if y is bound in range [minTerrainHeight, maxTerrainHeight]))
-        WorldGenerator::Terrain WorldGenerator::generateRandomTerrain(unsigned seed, size_t width, size_t height, const BiomeProperties& biome)
+        WorldGenerator::Terrain WorldGenerator::generateRandomTerrain(RNG& rng, size_t width, size_t height, const BiomeProperties& biome)
         {
                 Terrain t = {};
                 t.width = width;
@@ -154,13 +157,10 @@ namespace mc2d {
                 t.terrainHeightValues.resize(width, 0);
                 t.blocks.resize(width * height, BlockType::AIR);
 
-                // Setup RNG and distributions needed for terrain generation
-                std::mt19937 gen(seed);
-
                 std::uniform_int_distribution heightDistrib(biome.minTerrainHeight, biome.maxTerrainHeight);
                 std::uniform_real_distribution slopeDistrib(biome.minTerrainSlope, biome.maxTerrainSlope);
 
-                float lastHeight = static_cast<float>(heightDistrib(gen));
+                float lastHeight = static_cast<float>(heightDistrib(rng));
 
                 // Generate control points for the terrain
                 size_t controlPointsNum = (biome.terrainControlPointsNum > 2 ? biome.terrainControlPointsNum : 2);
@@ -169,7 +169,7 @@ namespace mc2d {
 
                 for(size_t i = 0; i < controlPointsNum; ++i)
                 {
-                        float currSlope = slopeDistrib(gen) * BLOCK_HEIGHT;
+                        float currSlope = slopeDistrib(rng) * BLOCK_HEIGHT;
                         lastHeight = std::clamp(lastHeight + currSlope, (float) biome.minTerrainHeight, (float) biome.maxTerrainHeight);
 
                         controlPoints[i].x = (float) i * controlPointsSpacing;
@@ -216,22 +216,22 @@ namespace mc2d {
         }
 
 
-
-        void WorldGenerator::addTreesToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        void WorldGenerator::addTreesToTerrain(RNG& rng, Terrain& t, const BiomeProperties& biome)
         {
                 // TODO: Add implementation...
         }
 
 
-        void WorldGenerator::addWaterToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        void WorldGenerator::addWaterToTerrain(RNG& rng, Terrain& t, const BiomeProperties& biome)
         {
                 // TODO: Add implementation...
         }
 
 
-        void WorldGenerator::addMineralsToTerrain(unsigned seed, Terrain& t, const BiomeProperties& biome)
+        void WorldGenerator::addMineralsToTerrain(RNG& rng, Terrain& t, const BiomeProperties& biome)
         {
                 // TODO: Add implementation...
         }
+
 }
 
