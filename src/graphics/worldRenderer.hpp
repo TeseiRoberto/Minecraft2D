@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "world/gameWorld.hpp"
 #include "shader.hpp"
 #include "tileset.hpp"

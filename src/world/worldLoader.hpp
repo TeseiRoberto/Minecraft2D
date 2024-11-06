@@ -14,7 +14,7 @@
 #include <fstream>
 #include <filesystem>
 
-#include "logging.hpp"
+#include "log.hpp"
 
 namespace mc2d {
 

@@ -10,7 +10,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "world/gameWorld.hpp"
 
 namespace mc2d {

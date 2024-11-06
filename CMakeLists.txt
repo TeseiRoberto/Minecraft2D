@@ -15,6 +15,7 @@ set (SRCS
         src/main.cpp
         src/game.cpp
         src/world/gameWorld.cpp
+        src/world/structure.cpp
         src/world/worldGenerator.cpp
         src/world/worldLoader.cpp
         src/world/worldEncyclopedia.cpp

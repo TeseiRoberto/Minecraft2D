@@ -23,9 +23,10 @@
 #include <cmath>
 #include <glm/vec2.hpp>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "utility.hpp"
 #include "blockTypes.hpp"
+#include "structure.hpp"
 #include "entity.hpp"
 
 namespace mc2d {
@@ -44,6 +45,7 @@ namespace mc2d {
                 BiomeType               biome;
                 std::vector<BlockType>  blocks;                 // Keeps track of all the blocks in the chunk
                 std::vector<Entity>     entities;               // Keeps track of all the entities that are contained in the chunk
+                std::vector<Structure>  interChunkStructures;   // Keeps track of the structures in the chunk that are partially positioned in a neighbor chunk and still needs to be spawned in the neighbor
 
                 // Returns the coordinates (in world space) of the top left corner of the chunk
                 inline glm::vec2        getPos() const                { return glm::vec2( (float) (id * Chunk::width) * BLOCK_WIDTH, (float) Chunk::height * BLOCK_HEIGHT); }

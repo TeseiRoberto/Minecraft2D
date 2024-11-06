@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 #include <stb_image.h>
 
-#include "logging.hpp"
+#include "log.hpp"
 
 namespace mc2d {
 

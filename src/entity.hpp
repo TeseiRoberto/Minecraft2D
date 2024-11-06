@@ -7,6 +7,8 @@
 #include <fstream>
 #include <glm/vec3.hpp>
 
+#include "log.hpp"
+
 namespace mc2d {
 
 

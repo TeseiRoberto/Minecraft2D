@@ -6,7 +6,7 @@
 
 #include <memory>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "game.hpp"
 #include "scene.hpp"
 #include "world/worldGenerator.hpp"

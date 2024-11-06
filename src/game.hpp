@@ -12,7 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/camera.hpp"
 

@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <glad/glad.h>
 
-#include "logging.hpp"
+#include "log.hpp"
 #include "shader.hpp"
 #include "sprite.hpp"
 #include "camera.hpp"
